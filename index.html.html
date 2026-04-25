@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>T-Time</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap');
+        :root { 
+            --bg: #1a1a1a; --card: #262626; --primary: #c9a063; --accent: #e63946; --text: #f0f0f0;
+            --font-gyosho: 'Klee One', 'YuMincho', 'Yu Mincho', serif;
+        }
+        body { font-family: var(--font-gyosho); background: var(--bg); color: var(--text); padding: 5px; margin: 0; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 500px; background: var(--card); border-radius: 30px; padding: 15px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid rgba(201, 160, 99, 0.2); text-align: center; }
+        h1 { font-size: 2.5rem; color: var(--primary); margin: 0; font-weight: 600; letter-spacing: 4px; }
+        .subtitle-area { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 15px; }
+        .reset-btn-small { background: transparent; border: 1px solid #555; color: #888; padding: 4px 12px; border-radius: 8px; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; }
+        .mode-switch { display: flex; gap: 8px; margin-bottom: 15px; }
+        .mode-btn { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid #444; background: #262626; color: white; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; }
+        .mode-active { background: var(--primary); color: #1a1a1a; border-color: var(--primary); font-weight: bold; }
+        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .input-group { flex: 1; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 15px; text-align: left; }
+        label { display: block; font-size: 0.8rem; color: var(--primary); }
+        input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #444; color: white; font-size: 1.5rem; outline: none; font-family: var(--font-gyosho); }
+        .main-btn { background: var(--primary); color: #1a1a1a; border: none; width: 100%; padding: 18px; border-radius: 40px; font-size: 1.5rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; }
+        
+        #info-area { margin-top: 10px; min-height: 1.5rem; }
+        .result { margin-top: 5px; display: none; }
+        
+        .finish-focus { background: rgba(230, 57, 70, 0.05); padding: 20px 10px; border-radius: 20px; margin-bottom: 10px; position: relative; }
+        .finish-header { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .finish-label { font-size: 1rem; color: var(--primary); }
+        .time-display-large { font-size: 4rem; color: var(--accent); font-weight: bold; line-height: 1; margin-bottom: 8px; }
+        .countdown-display { font-size: 1.6rem; color: var(--text); font-weight: bold; }
+
+        #notify-request { display: none; background: var(--primary); color: #1a1a1a; border: none; padding: 10px 20px; border-radius: 12px; font-size: 0.9rem; font-weight: bold; margin: 15px auto; cursor: pointer; font-family: var(--font-gyosho); }
+
+        .milestones { display: flex; justify-content: space-around; margin: 15px 0; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 15px; }
+        .m-item { font-size: 0.8rem; color: #ccc; }
+        .m-item b { display: block; color: var(--primary); font-size: 0.95rem; margin-top: 3px; }
+
+        .analysis-box { background: rgba(201, 160, 99, 0.1); border-radius: 15px; padding: 10px; display: flex; justify-content: space-around; gap: 5px; margin-bottom: 20px; }
+        .analysis-item { font-size: 0.75rem; color: #ccc; flex: 1; }
+        .analysis-item b { display: block; color: var(--primary); font-size: 0.95rem; margin-top: 2px; }
+
+        .history-footer { font-size: 0.95rem; color: #777; border-top: 1px solid #333; padding-top: 15px; margin-top: 10px; min-height: 1.5rem; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>T-Time</h1>
+    <div class="subtitle-area">
+        <div style="font-size: 0.8rem; color:#888;">完了時間を予想します</div>
+        <button class="reset-btn-small" onclick="softReset()">リセット</button>
+    </div>
+
+    <div id="inputSection">
+        <div class="mode-switch">
+            <button id="modePct" class="mode-btn mode-active" onclick="setMode('pct')">％</button>
+            <button id="modeNum" class="mode-btn" onclick="setMode('num')">個数</button>
+        </div>
+        <div class="input-row">
+            <div class="input-group"><label id="labelStart">現在の ％</label><input type="number" id="inputStart" value="3"></div>
+            <div class="input-group"><label id="labelEnd">次に押す ％</label><input type="number" id="inputEnd" value="4"></div>
+        </div>
+        <div id="totalGroup" class="input-group" style="display:none; margin-bottom:10px;"><label>全体の合計</label><input type="number" id="inputTotal" value="100"></div>
+    </div>
+    
+    <div id="info-area"></div>
+    <button id="mainBtn" class="main-btn" onclick="handleClick()">ここから測る</button>
+
+    <div id="resultArea" class="result">
+        <div class="finish-focus">
+            <div class="finish-header">
+                <div class="finish-label">完了予定時刻</div>
+                <button class="reset-btn-small" onclick="softReset()" style="padding: 2px 8px; font-size: 0.7rem;">リセット</button>
+            </div>
+            <div id="valFinish" class="time-display-large">--:--:--</div>
+            <div id="valRemainingCountdown" class="countdown-display">あと --分--秒</div>
+        </div>
+
+        <button id="notify-request" onclick="requestNotify()">🔔 通知を有効にする (5分/10分前)</button>
+
+        <div class="milestones">
+            <div class="m-item">10%<b id="m10">--:--:--</b></div>
+            <div class="m-item">50%<b id="m50">--:--:--</b></div>
+            <div class="m-item">90%<b id="m90">--:--:--</b></div>
+        </div>
+
+        <div class="analysis-box">
+            <div class="analysis-item">1分<b><span id="valPerMin">--</span></b></div>
+            <div class="analysis-item"><span id="lblPerUnit">1％</span><b><span id="valPerUnit">--</span></b></div>
+            <div class="analysis-item"><span id="lblFull">100％</span><b><span id="valFullDuration">--</span></b></div>
+        </div>
+    </div>
+
+    <div class="history-footer">
+        <div id="statusHistory"></div>
+    </div>
+</div>
+
+<script>
+    var mode = 'pct'; var phase = 'READY'; var startTime; var timerInterval; var countdownInterval;
+    var targetFinishTime = null;
+    var notifyFlags = { m10: false, m5: false, m0: false };
+
+    function requestNotify() {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") document.getElementById('notify-request').style.display = "none";
+        });
+    }
+
+    function sendNotify(msg) {
+        if (Notification.permission === "granted") {
+            new Notification("T-Time お知らせ", { body: msg });
+            const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+            audio.play().catch(()=>{});
+        }
+    }
+
+    function setMode(m) {
+        mode = m;
+        document.getElementById('modePct').className = m === 'pct' ? 'mode-btn mode-active' : 'mode-btn';
+        document.getElementById('modeNum').className = m === 'num' ? 'mode-btn mode-active' : 'mode-btn';
+        document.getElementById('totalGroup').style.display = m === 'num' ? 'block' : 'none';
+        
+        const suffix = m === 'pct' ? '％' : '個数';
+        document.getElementById('labelStart').innerText = '現在の ' + suffix;
+        document.getElementById('labelEnd').innerText = '次に押す ' + suffix;
+        
+        document.getElementById('lblPerUnit').innerText = m === 'pct' ? '1％' : '1個';
+        document.getElementById('lblFull').innerText = m === 'pct' ? '100％' : '合計';
+    }
+
+    function softReset() {
+        phase = 'READY'; clearInterval(timerInterval); clearInterval(countdownInterval);
+        targetFinishTime = null; notifyFlags = { m10: false, m5: false, m0: false };
+        document.getElementById('resultArea').style.display = "none";
+        document.getElementById('info-area').innerText = "";
+        document.getElementById('statusHistory').innerText = "";
+        document.getElementById('notify-request').style.display = "none";
+        const btn = document.getElementById('mainBtn');
+        btn.style.display = "block"; btn.innerText = "ここから測る"; 
+        btn.style.background = "var(--primary)"; btn.style.color = "#1a1a1a";
+    }
+
+    function formatMinSec(totalSeconds) {
+        if (totalSeconds <= 0) return "完了！";
+        const m = Math.floor(totalSeconds / 60);
+        const s = Math.floor(totalSeconds % 60);
+        return m + "分" + s + "秒";
+    }
+
+    function handleClick() {
+        const btn = document.getElementById('mainBtn');
+        const info = document.getElementById('info-area');
+        const history = document.getElementById('statusHistory');
+        
+        // 確定ボタンを押す瞬間の最新値を取得
+        const sVal = parseFloat(document.getElementById('inputStart').value);
+        const eVal = parseFloat(document.getElementById('inputEnd').value);
+        const total = (mode === 'pct') ? 100 : parseFloat(document.getElementById('inputTotal').value);
+
+        if (phase === 'READY') {
+            startTime = Date.now();
+            phase = 'MEASURING';
+            const startStr = new Date(startTime).toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            history.innerText = `${startStr} 開始`;
+            info.innerHTML = `<div id="stopwatch" style="font-size: 2rem; color:#fff; margin:10px 0; font-weight:bold;">0.0秒</div>`;
+            
+            // 入力されている目標値をリアルタイムに反映
+            btn.innerText = `${eVal}${mode==='pct'?'%':'個'} で確定`;
+            btn.style.background = "#555"; btn.style.color = "#fff";
+            
+            timerInterval = setInterval(() => {
+                const sw = document.getElementById('stopwatch');
+                if(sw) sw.innerText = `${((Date.now() - startTime)/1000).toFixed(1)}秒`;
+                // 確定ボタンのテキストも入力値に合わせて更新（入力ミス修正用）
+                const currentEVal = document.getElementById('inputEnd').value;
+                btn.innerText = `${currentEVal}${mode==='pct'?'%':'個'} で確定`;
+            }, 100);
+        } 
+        else if (phase === 'MEASURING') {
+            clearInterval(timerInterval);
+            const now = Date.now();
+            const endStr = new Date(now).toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            const startStrFull = new Date(startTime).toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            
+            const duration = (now - startTime) / 1000;
+            const diff = eVal - sVal;
+            if (diff <= 0) { alert("数値を正しく入力してください"); softReset(); return; }
+            
+            const timePerUnit = duration / diff;
+            const totalRemainingSeconds = timePerUnit * (total - eVal);
+            const fullDurationSeconds = timePerUnit * total;
+            targetFinishTime = now + totalRemainingSeconds * 1000;
+
+            document.getElementById('valPerMin').innerText = (60 / timePerUnit).toFixed(1) + (mode==='pct'?'%':'個');
+            document.getElementById('valPerUnit').innerText = timePerUnit.toFixed(1) + "秒";
+            document.getElementById('valFullDuration').innerText = formatMinSec(fullDurationSeconds);
+
+            const calcTime = (p) => {
+                const target = total * p;
+                if (target <= eVal) return "到達済";
+                const sec = timePerUnit * (target - eVal);
+                return new Date(now + sec * 1000).toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            };
+
+            document.getElementById('valFinish').innerText = new Date(targetFinishTime).toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            document.getElementById('m10').innerText = calcTime(0.1);
+            document.getElementById('m50').innerText = calcTime(0.5);
+            document.getElementById('m90').innerText = calcTime(0.9);
+            
+            history.innerText = `${startStrFull} 開始 ➜ ${endStr} 確定`;
+            
+            document.getElementById('resultArea').style.display = "block";
+            // 入力セクションは隠さない
+            btn.style.display = "none";
+            info.innerHTML = "";
+            phase = 'FINISHED';
+
+            const initialRem = (targetFinishTime - Date.now()) / 1000;
+            if (initialRem >= 300 && Notification.permission !== "granted") {
+                document.getElementById('notify-request').style.display = "block";
+            }
+            if (initialRem < 600) notifyFlags.m10 = true;
+            if (initialRem < 300) notifyFlags.m5 = true;
+
+            countdownInterval = setInterval(() => {
+                const rem = (targetFinishTime - Date.now()) / 1000;
+                document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSec(rem);
+                if (rem < 300) document.getElementById('notify-request').style.display = "none";
+                if (rem <= 600 && rem > 598 && !notifyFlags.m10) { sendNotify("残り10分です！"); notifyFlags.m10 = true; }
+                if (rem <= 300 && rem > 298 && !notifyFlags.m5) { sendNotify("残り5分です！"); notifyFlags.m5 = true; }
+                if (rem <= 0) { 
+                    if (!notifyFlags.m0) { sendNotify("完了しました！"); notifyFlags.m0 = true; }
+                    document.getElementById('valRemainingCountdown').innerText = "完了！";
+                    clearInterval(countdownInterval); 
+                }
+            }, 1000);
+        }
+    }
+</script>
+</body>
+</html>
