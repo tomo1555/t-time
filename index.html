@@ -6,10 +6,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>T-Time</title>
-    
     <link rel="apple-touch-icon" href="icon.png?v=2">
     <link rel="icon" href="icon.png?v=2">
-    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap');
         :root { 
@@ -98,6 +96,45 @@
     var mode = 'pct'; var phase = 'READY'; var startTime, confirmTime, timerInterval, countdownInterval;
     var targetFinishTime = null; var speedPerMs = 0; var lastEndVal = 0; var totalTarget = 100;
     var currentEstimatedVal = 0;
+
+    // 起動時に保存されたデータを読み込む
+    window.onload = function() {
+        const saved = localStorage.getItem('tTimeSavedData');
+        if (saved) {
+            const data = JSON.parse(saved);
+            mode = data.mode;
+            setMode(mode);
+            document.getElementById('inputStart').value = data.sVal;
+            document.getElementById('inputEnd').value = data.eVal;
+            document.getElementById('inputTotal').value = data.totalTarget;
+            
+            if (data.phase === 'FINISHED') {
+                startTime = data.startTime;
+                confirmTime = data.confirmTime;
+                lastEndVal = data.eVal;
+                totalTarget = data.totalTarget;
+                speedPerMs = data.speedPerMs;
+                targetFinishTime = data.targetFinishTime;
+                startResultDisplay();
+            }
+        }
+    };
+
+    function saveData() {
+        const data = {
+            mode: mode,
+            phase: phase,
+            sVal: parseFloat(document.getElementById('inputStart').value),
+            eVal: parseFloat(document.getElementById('inputEnd').value),
+            totalTarget: totalTarget,
+            startTime: startTime,
+            confirmTime: confirmTime,
+            targetFinishTime: targetFinishTime,
+            speedPerMs: speedPerMs
+        };
+        localStorage.setItem('tTimeSavedData', JSON.stringify(data));
+    }
+
     function setMode(m) {
         mode = m;
         document.getElementById('modePct').className = m === 'pct' ? 'mode-btn mode-active' : 'mode-btn';
@@ -106,9 +143,12 @@
         document.getElementById('unitLive').innerText = m === 'pct' ? '％' : '個';
         document.getElementById('lblPerUnit').innerText = m === 'pct' ? '1％' : '1個';
         document.getElementById('lblFull').innerText = m === 'pct' ? '100％' : '合計';
+        saveData();
     }
+
     function softReset() {
         phase = 'READY'; clearInterval(timerInterval); clearInterval(countdownInterval);
+        localStorage.removeItem('tTimeSavedData'); // 保存データも消去
         document.getElementById('inputStart').value = 3;
         document.getElementById('inputEnd').value = 4;
         document.getElementById('inputTotal').value = 100;
@@ -119,6 +159,7 @@
         btn.style.display = "block"; btn.innerText = "ここから測る"; 
         btn.style.background = "var(--primary)";
     }
+
     function pauseAndEdit() {
         clearInterval(timerInterval);
         clearInterval(countdownInterval);
@@ -126,6 +167,7 @@
         document.getElementById('inputStart').value = roundedVal;
         document.getElementById('inputEnd').value = roundedVal + 1;
         phase = 'READY';
+        saveData();
         document.getElementById('resultArea').style.display = "none";
         document.getElementById('info-area').innerText = "再設定してください";
         const btn = document.getElementById('mainBtn');
@@ -133,22 +175,64 @@
         btn.style.background = "var(--primary)";
         document.getElementById('inputEnd').focus();
     }
+
     function formatMinSec(totalSeconds) {
         if (totalSeconds <= 0) return "完了！";
         const m = Math.floor(totalSeconds / 60);
         const s = Math.floor(totalSeconds % 60);
         return m + "分" + s + "秒";
     }
+
+    function startResultDisplay() {
+        const timePerUnitMs = 1 / speedPerMs;
+        document.getElementById('valPerMin').innerText = (speedPerMs * 60000).toFixed(1) + (mode==='pct'?'%':'個');
+        document.getElementById('valPerUnit').innerText = (timePerUnitMs / 1000).toFixed(1) + "秒";
+        document.getElementById('valFullDuration').innerText = formatMinSec((timePerUnitMs * totalTarget) / 1000);
+
+        const calcTime = (p) => {
+            const target = totalTarget * p;
+            if (target <= lastEndVal) return "到達済";
+            return new Date(confirmTime + timePerUnitMs * (target - lastEndVal)).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        };
+
+        document.getElementById('valFinish').innerText = new Date(targetFinishTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        document.getElementById('m10').innerText = calcTime(0.1);
+        document.getElementById('m50').innerText = calcTime(0.5);
+        document.getElementById('m90').innerText = calcTime(0.9);
+        
+        document.getElementById('resultArea').style.display = "block";
+        document.getElementById('mainBtn').style.display = "none";
+        document.getElementById('info-area').innerHTML = "";
+        phase = 'FINISHED';
+
+        countdownInterval = setInterval(() => {
+            const now = Date.now();
+            const rem = (targetFinishTime - now) / 1000;
+            document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSec(rem);
+            currentEstimatedVal = lastEndVal + (speedPerMs * (now - confirmTime));
+            if (currentEstimatedVal > totalTarget) currentEstimatedVal = totalTarget;
+            document.getElementById('valLiveProgress').innerText = currentEstimatedVal.toFixed(2);
+            document.getElementById('barFill').style.width = (currentEstimatedVal / totalTarget * 100) + "%";
+            if (rem <= 0) { 
+                document.getElementById('valRemainingCountdown').innerText = "完了！";
+                document.getElementById('pauseBtnInline').style.display = "none";
+                clearInterval(countdownInterval); 
+            }
+        }, 100);
+    }
+
     function handleClick() {
         const btn = document.getElementById('mainBtn');
         const info = document.getElementById('info-area');
         const sVal = parseFloat(document.getElementById('inputStart').value);
         const eVal = parseFloat(document.getElementById('inputEnd').value);
         totalTarget = (mode === 'pct') ? 100 : parseFloat(document.getElementById('inputTotal').value);
+
         if (phase === 'READY') {
             startTime = Date.now();
             phase = 'MEASURING';
             currentEstimatedVal = sVal; 
+            saveData();
             info.innerHTML = `<div id="stopwatch" style="font-size: 2rem; color:#fff; font-weight:bold;">0.0秒</div>`;
             btn.innerText = `${eVal}${mode==='pct'?'%':'個'} で確定`;
             btn.style.background = "#555"; btn.style.color = "#fff";
@@ -164,39 +248,10 @@
             const durationMs = confirmTime - startTime;
             const diff = eVal - sVal;
             if (diff <= 0) { alert("数値を正しく入力してください"); return; }
-            const timePerUnitMs = durationMs / diff;
-            speedPerMs = 1 / timePerUnitMs;
-            targetFinishTime = confirmTime + (timePerUnitMs * (totalTarget - eVal));
-            document.getElementById('valPerMin').innerText = (speedPerMs * 60000).toFixed(1) + (mode==='pct'?'%':'個');
-            document.getElementById('valPerUnit').innerText = (timePerUnitMs / 1000).toFixed(1) + "秒";
-            document.getElementById('valFullDuration').innerText = formatMinSec((timePerUnitMs * totalTarget) / 1000);
-            const calcTime = (p) => {
-                const target = totalTarget * p;
-                if (target <= eVal) return "到達済";
-                return new Date(confirmTime + timePerUnitMs * (target - eVal)).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            };
-            document.getElementById('valFinish').innerText = new Date(targetFinishTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            document.getElementById('m10').innerText = calcTime(0.1);
-            document.getElementById('m50').innerText = calcTime(0.5);
-            document.getElementById('m90').innerText = calcTime(0.9);
-            document.getElementById('resultArea').style.display = "block";
-            btn.style.display = "none";
-            info.innerHTML = "";
-            phase = 'FINISHED';
-            countdownInterval = setInterval(() => {
-                const now = Date.now();
-                const rem = (targetFinishTime - now) / 1000;
-                document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSec(rem);
-                currentEstimatedVal = lastEndVal + (speedPerMs * (now - confirmTime));
-                if (currentEstimatedVal > totalTarget) currentEstimatedVal = totalTarget;
-                document.getElementById('valLiveProgress').innerText = currentEstimatedVal.toFixed(2);
-                document.getElementById('barFill').style.width = (currentEstimatedVal / totalTarget * 100) + "%";
-                if (rem <= 0) { 
-                    document.getElementById('valRemainingCountdown').innerText = "完了！";
-                    document.getElementById('pauseBtnInline').style.display = "none";
-                    clearInterval(countdownInterval); 
-                }
-            }, 100);
+            speedPerMs = diff / durationMs;
+            targetFinishTime = confirmTime + ((totalTarget - eVal) / speedPerMs);
+            saveData();
+            startResultDisplay();
         }
     }
 </script>
