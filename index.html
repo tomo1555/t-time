@@ -6,8 +6,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>T-Time</title>
-    <link rel="apple-touch-icon" href="icon.png">
-    <link rel="icon" href="icon.png">
+    
+    <link rel="apple-touch-icon" href="icon.png?v=2">
+    <link rel="icon" href="icon.png?v=2">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap');
         :root { 
@@ -29,12 +31,9 @@
         .result { margin-top: 0; display: none; }
         .finish-focus { background: rgba(230, 57, 70, 0.05); padding: 15px 10px; border-radius: 20px; margin-top: 15px; margin-bottom: 10px; position: relative; }
         .time-display-large { font-size: 3.2rem; color: var(--accent); font-weight: bold; line-height: 1; margin-bottom: 5px; }
-        
-        /* 配置修正：一時停止を左、カウントダウンを右 */
         .countdown-row { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 8px 0; }
         .countdown-display { font-size: 1.6rem; color: var(--text); font-weight: bold; }
         .pause-btn-inline { background: rgba(201, 160, 99, 0.1); border: 1px solid var(--primary); color: var(--primary); padding: 4px 12px; border-radius: 8px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.75rem; text-align: center; }
-
         .live-progress-container { margin: 12px 0; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
         .live-row { display: flex; justify-content: center; align-items: center; gap: 15px; }
         .live-value { font-size: 1.8rem; font-weight: bold; color: #fff; }
