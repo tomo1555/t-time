@@ -140,7 +140,7 @@
         }
 
         for (let i = 1; i <= 3; i++) {
-            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v7`);
+            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v8`);
             if (saved) {
                 timers[i] = JSON.parse(saved);
             }
@@ -151,7 +151,7 @@
     };
 
     function saveTabSpecific(tabNum) {
-        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v7`, JSON.stringify(timers[tabNum]));
+        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v8`, JSON.stringify(timers[tabNum]));
     }
 
     function switchTab(tabNum) {
@@ -167,10 +167,10 @@
 
         const now = Date.now();
         
-        if (t.phase === 'FINISHED' || t.targetFinishTime) {
-            if (t.targetFinishTime && now < t.targetFinishTime && t.speedPerMs > 0) {
+        if (t.targetFinishTime) {
+            if (now < t.targetFinishTime && t.speedPerMs > 0) {
                 t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
-            } else if (t.targetFinishTime && now >= t.targetFinishTime) {
+            } else {
                 t.currentEstimatedVal = t.totalTarget;
             }
         }
@@ -204,6 +204,7 @@
     }
 
     function renderStaticUI() {
+        // 【最重要修正】他タブを一切混ぜず「いま開いている現在のタブ（t）」の状態だけを100%綺麗に判定する
         const t = timers[currentTab];
         const btn = document.getElementById('mainBtn');
         const info = document.getElementById('info-area');
@@ -227,6 +228,7 @@
             btn.style.display = "block";
             topReset.style.display = "inline-block";
         } else if (t.phase === 'FINISHED' || t.targetFinishTime) {
+            // 他のタブに関係なく、現在のタブに予測データがあれば、絶対にリザルトエリア（シャッター）を表示する！
             result.style.display = "block";
             info.innerHTML = "";
             topReset.style.display = "inline-block";
@@ -246,7 +248,7 @@
     function uiRenderLoop() {
         const now = Date.now();
         
-        // 【隔離処理】裏の計算ロジックとバッジの制御のみを行う
+        // 1. 各タブの独立した裏計算処理＆バッジ判定（他タブの画面表示には絶対に干渉させない）
         for (let i = 1; i <= 3; i++) {
             const t = timers[i];
             if (t.targetFinishTime) {
@@ -262,6 +264,7 @@
                     t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
                     if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
                     
+                    // 計測完了中のタブだけ赤丸を表示
                     if (t.phase === 'FINISHED') {
                         document.getElementById(`badge${i}`).style.display = 'inline-block'; 
                     } else {
@@ -273,7 +276,7 @@
             }
         }
         
-        // 【最重要改善】現在のフェーズ名に関わらず、動いている予測データ（targetFinishTime）があれば無条件で現在のタブを1秒ごとに強制再描写する
+        // 2. 現在開いているアクティブタブの画面描写（完全に無条件で1秒ごとに実行）
         renderStaticUI(); 
         const activeTimer = timers[currentTab];
         if (activeTimer.targetFinishTime) {
@@ -382,7 +385,7 @@
         t.sVal = roundedVal;
         t.eVal = roundedVal + 1;
         t.phase = 'READY';
-        t.targetFinishTime = null; // 再設定時は予測時間を一度クリア
+        t.targetFinishTime = null; 
         saveTabSpecific(currentTab);
         
         document.getElementById('inputStart').value = t.sVal;
