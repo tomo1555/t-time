@@ -25,7 +25,7 @@
         .top-reset-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 2px 10px; border-radius: 6px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.8rem; font-weight: bold; -webkit-tap-highlight-color: transparent; display: none; }
 
         .multi-tabs { display: flex; gap: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px; }
-        .tab-btn { flex: 1; padding: 12px 5px; font-size: 1.3rem; border: none; border-radius: 8px; background: transparent; color: #777; cursor: pointer; font-family: var(--font-gyosho); transition: all 0.2s; -webkit-tap-highlight-color: transparent; font-weight: bold; }
+        .tab-btn { flex: 1; padding: 12px 5px; font-size: 1.3rem; border: none; border-radius: 8px; background: transparent; color: #777; cursor: pointer; font-family: var(--font-gyosho); transition: all 0.2s; -webkit-tap-highlight-color: transparent; font-weight: bold; position: relative; }
         .tab-btn.tab-active { background: #333; color: var(--primary); font-weight: bold; border: 1px solid rgba(201, 160, 99, 0.3); }
         .tab-badge { display: inline-block; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; margin-left: 4px; display: none; vertical-align: middle; }
 
@@ -129,7 +129,7 @@
     var timers = {
         1: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
         2: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
-        3: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, null: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false }
+        3: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false }
     };
 
     window.onload = function() {
@@ -137,9 +137,9 @@
             Notification.requestPermission();
         }
 
-        // 【大修正】ロッカーを完全に別室(Tab1, Tab2, Tab3個別のキー)にして干渉を完全破壊
+        // 完全に隔離された個別の記憶ロッカーからデータを読み込む
         for (let i = 1; i <= 3; i++) {
-            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v1`);
+            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v2`);
             if (saved) {
                 timers[i] = JSON.parse(saved);
             }
@@ -150,16 +150,12 @@
     };
 
     function saveTabSpecific(tabNum) {
-        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v1`, JSON.stringify(timers[tabNum]));
+        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v2`, JSON.stringify(timers[tabNum]));
     }
 
     function switchTab(tabNum) {
-        if(timers[currentTab].phase === 'READY') {
-            timers[currentTab].sVal = parseFloat(document.getElementById('inputStart').value) || 3;
-            timers[currentTab].eVal = parseFloat(document.getElementById('inputEnd').value) || 4;
-            timers[currentTab].totalTarget = parseFloat(document.getElementById('inputTotal').value) || 100;
-        }
-
+        // 【大バグ修正】切り替え元の数値を切り替え先に勝手に上書きコピーしていた処理を完全消去しました。
+        
         document.getElementById(`tab${currentTab}`).classList.remove('tab-active');
         currentTab = tabNum;
         document.getElementById(`tab${currentTab}`).classList.add('tab-active');
@@ -195,6 +191,7 @@
         const result = document.getElementById('resultArea');
         const topReset = document.getElementById('topResetBtn');
 
+        // タブ切り替え時に、現在のフォーム数値を phase が READY の時だけ同期
         if (t.phase === 'READY') {
             result.style.display = "none";
             info.innerText = "";
@@ -231,12 +228,13 @@
     function uiRenderLoop() {
         const now = Date.now();
         
+        // 全タブの「状態の進行」だけを裏側で静かに計算（画面の表示には一切触らない）
         for (let i = 1; i <= 3; i++) {
             const t = timers[i];
             if (t.phase === 'FINISHED') {
                 if (t.targetFinishTime && now >= t.targetFinishTime) {
                     t.currentEstimatedVal = t.totalTarget;
-                    document.getElementById(`badge${i}`).style.display = 'none';
+                    document.getElementById(`badge${i}`).style.display = 'none'; // 完了したら赤丸を消す
                     if (!t.notified) {
                         sendPushNotification(i);
                         t.notified = true;
@@ -246,6 +244,8 @@
                 } else if (t.speedPerMs > 0) {
                     t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
                     if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
+                    
+                    // まだ動いている間だけ、赤丸（badge）を表示する
                     document.getElementById(`badge${i}`).style.display = 'inline-block';
                 }
             } else {
@@ -253,6 +253,7 @@
             }
         }
         
+        // 画面へのテキスト書き換えは、「今見ているアクティブなタブ」の数値だけを100%使用する
         const activeTimer = timers[currentTab];
         if (activeTimer.phase === 'FINISHED') {
             updateFinishedDisplaySmooth(activeTimer, now);
