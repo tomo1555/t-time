@@ -2,22 +2,34 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>T-Time</title>
-    <link rel="apple-touch-icon" href="icon.png?v=2">
-    <link rel="icon" href="icon.png?v=2">
+    <title>T-Time Multi</title>
+    
+    <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/1BfS_86_S3H4FInF5Y29Z-gD67qA8N65v">
+    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1BfS_86_S3H4FInF5Y29Z-gD67qA8N65v">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap');
         :root { 
             --bg: #1a1a1a; --card: #262626; --primary: #c9a063; --accent: #e63946; --text: #f0f0f0;
             --font-gyosho: 'Klee One', 'YuMincho', 'Yu Mincho', serif;
         }
-        body { font-family: var(--font-gyosho); background: var(--bg); color: var(--text); padding: 5px; margin: 0; display: flex; justify-content: center; }
+        body { font-family: var(--font-gyosho); background: var(--bg); color: var(--text); padding: env(safe-area-inset-top) 5px 20px 5px; margin: 0; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 500px; background: var(--card); border-radius: 30px; padding: 15px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid rgba(201, 160, 99, 0.2); text-align: center; }
         h1 { font-size: 2.5rem; color: var(--primary); margin: 0; font-weight: 600; letter-spacing: 4px; }
-        .subtitle-area { margin-bottom: 15px; font-size: 0.8rem; color:#888; }
+        
+        .subtitle-area { margin-bottom: 15px; font-size: 1.0rem; color:#aaa; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 32px; }
+        
+        .top-reset-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 2px 10px; border-radius: 6px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.8rem; font-weight: bold; -webkit-tap-highlight-color: transparent; display: none; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .multi-tabs { display: flex; gap: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px; }
+        .tab-btn { flex: 1; padding: 12px 5px; font-size: 1.3rem; border: none; border-radius: 8px; background: transparent; color: #777; cursor: pointer; font-family: var(--font-gyosho); transition: all 0.2s; -webkit-tap-highlight-color: transparent; font-weight: bold; }
+        .tab-btn.tab-active { background: #333; color: var(--primary); font-weight: bold; border: 1px solid rgba(201, 160, 99, 0.3); }
+        .tab-badge { display: inline-block; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; margin-left: 4px; display: none; vertical-align: middle; }
+
         .mode-switch { display: flex; gap: 8px; margin-bottom: 15px; }
         .mode-btn { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid #444; background: #262626; color: white; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; }
         .mode-active { background: var(--primary); color: #1a1a1a; border-color: var(--primary); font-weight: bold; }
@@ -25,7 +37,13 @@
         .input-group { flex: 1; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 15px; text-align: left; }
         label { display: block; font-size: 0.8rem; color: var(--primary); }
         input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #444; color: white; font-size: 1.5rem; outline: none; font-family: var(--font-gyosho); }
-        .main-btn { background: var(--primary); color: #1a1a1a; border: none; width: 100%; padding: 18px; border-radius: 40px; font-size: 1.5rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; }
+        
+        .main-btn { background: var(--primary); color: #1a1a1a; border: none; width: 100%; padding: 18px; border-radius: 40px; font-size: 1.5rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
+        
+        .all-reset-area { margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .all-reset-btn { background: transparent; border: 1px solid #444; color: #666; width: 80%; padding: 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
+        .all-reset-btn:active { background: rgba(230, 57, 70, 0.1); border-color: var(--accent); color: var(--accent); }
+
         .result { margin-top: 0; display: none; }
         .finish-focus { background: rgba(230, 57, 70, 0.05); padding: 15px 10px; border-radius: 20px; margin-top: 15px; margin-bottom: 10px; position: relative; }
         .time-display-large { font-size: 3.2rem; color: var(--accent); font-weight: bold; line-height: 1; margin-bottom: 5px; }
@@ -35,13 +53,13 @@
         .live-progress-container { margin: 12px 0; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
         .live-row { display: flex; justify-content: center; align-items: center; gap: 15px; }
         .live-value { font-size: 1.8rem; font-weight: bold; color: #fff; }
-        .reset-btn-inline { background: transparent; border: 1px solid #555; color: #888; padding: 2px 10px; border-radius: 6px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.75rem; }
+        
         .progress-bar-bg { width: 100%; height: 8px; background: #333; border-radius: 4px; margin-top: 8px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.2s linear; }
+        .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.1s linear; }
         .milestones { display: flex; justify-content: space-around; margin: 15px 0; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 15px; }
         .m-item { font-size: 0.8rem; color: #ccc; }
         .m-item b { display: block; color: var(--primary); font-size: 0.95rem; }
-        .analysis-box { background: rgba(201, 160, 99, 0.1); border-radius: 15px; padding: 10px; display: flex; justify-content: space-around; gap: 5px; margin: 15px 0; }
+        .browser-warning { background: rgba(201, 160, 99, 0.1); border-radius: 15px; padding: 10px; display: flex; justify-content: space-around; gap: 5px; margin: 15px 0; }
         .analysis-item { font-size: 0.75rem; color: #ccc; flex: 1; }
         .analysis-item b { display: block; color: var(--primary); font-size: 0.95rem; margin-top: 2px; }
     </style>
@@ -49,11 +67,21 @@
 <body>
 <div class="container">
     <h1>T-Time</h1>
-    <div class="subtitle-area">完了時間を予想します</div>
+    <div class="subtitle-area">
+        <span>完了時間を予測します</span>
+        <button id="topResetBtn" class="top-reset-btn" onclick="softReset()">リセット</button>
+    </div>
+
+    <div class="multi-tabs">
+        <button id="tab1" class="tab-btn tab-active" onclick="switchTab(1)">壱<span id="badge1" class="tab-badge"></span></button>
+        <button id="tab2" class="tab-btn" onclick="switchTab(2)">弐<span id="badge2" class="tab-badge"></span></button>
+        <button id="tab3" class="tab-btn" onclick="switchTab(3)">参<span id="badge3" class="tab-badge"></span></button>
+    </div>
+
     <div id="inputSection">
         <div class="mode-switch">
-            <button id="modePct" class="mode-btn mode-active" onclick="setMode('pct')">％</button>
-            <button id="modeNum" class="mode-btn" onclick="setMode('num')">個数</button>
+            <button id="modePct" class="mode-btn mode-active" onclick="changeMode('pct')">％</button>
+            <button id="modeNum" class="mode-btn" onclick="changeMode('num')">個数</button>
         </div>
         <div class="input-row">
             <div class="input-group"><label id="labelStart">現在の値</label><input type="number" id="inputStart" value="3"></div>
@@ -62,7 +90,9 @@
         <div id="totalGroup" class="input-group" style="display:none; margin-bottom:10px;"><label>全体の合計</label><input type="number" id="inputTotal" value="100"></div>
     </div>
     <div id="info-area" style="min-height: 1rem; margin-top:5px;"></div>
+    
     <button id="mainBtn" class="main-btn" onclick="handleClick()">ここから測る</button>
+    
     <div id="resultArea" class="result">
         <div class="finish-focus">
             <div style="font-size: 0.9rem; color: var(--primary);">完了予定時刻</div>
@@ -75,7 +105,6 @@
                 <div style="font-size: 0.8rem; color: var(--primary); margin-bottom: 4px;">現在の推定進捗</div>
                 <div class="live-row">
                     <div class="live-value"><span id="valLiveProgress">--</span><span id="unitLive">％</span></div>
-                    <button class="reset-btn-inline" onclick="softReset()">リセット</button>
                 </div>
                 <div class="progress-bar-bg"><div id="barFill" class="progress-bar-fill"></div></div>
             </div>
@@ -85,174 +114,306 @@
             <div class="m-item">50%<b id="m50">--:--</b></div>
             <div class="m-item">90%<b id="m90">--:--</b></div>
         </div>
-        <div class="analysis-box">
+        <div class="browser-warning">
             <div class="analysis-item">1分進捗<b><span id="valPerMin">--</span></b></div>
             <div class="analysis-item"><span id="lblPerUnit">1単位</span><b><span id="valPerUnit">--</span></b></div>
             <div class="analysis-item"><span id="lblFull">全体</span><b><span id="valFullDuration">--</span></b></div>
         </div>
     </div>
-</div>
-<script>
-    var mode = 'pct'; var phase = 'READY'; var startTime, confirmTime, timerInterval, countdownInterval;
-    var targetFinishTime = null; var speedPerMs = 0; var lastEndVal = 0; var totalTarget = 100;
-    var currentEstimatedVal = 0;
 
-    // 起動時に保存されたデータを読み込む
-    window.onload = function() {
-        const saved = localStorage.getItem('tTimeSavedData');
-        if (saved) {
-            const data = JSON.parse(saved);
-            mode = data.mode;
-            setMode(mode);
-            document.getElementById('inputStart').value = data.sVal;
-            document.getElementById('inputEnd').value = data.eVal;
-            document.getElementById('inputTotal').value = data.totalTarget;
-            
-            if (data.phase === 'FINISHED') {
-                startTime = data.startTime;
-                confirmTime = data.confirmTime;
-                lastEndVal = data.eVal;
-                totalTarget = data.totalTarget;
-                speedPerMs = data.speedPerMs;
-                targetFinishTime = data.targetFinishTime;
-                startResultDisplay();
-            }
-        }
+    <div class="all-reset-area">
+        <button class="all-reset-btn" onclick="globalAllReset()">すべてのタブを初期化</button>
+    </div>
+</div>
+
+<script>
+    var currentTab = 1;
+    var timers = {
+        1: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
+        2: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
+        3: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false }
     };
 
-    function saveData() {
-        const data = {
-            mode: mode,
-            phase: phase,
-            sVal: parseFloat(document.getElementById('inputStart').value),
-            eVal: parseFloat(document.getElementById('inputEnd').value),
-            totalTarget: totalTarget,
-            startTime: startTime,
-            confirmTime: confirmTime,
-            targetFinishTime: targetFinishTime,
-            speedPerMs: speedPerMs
-        };
-        localStorage.setItem('tTimeSavedData', JSON.stringify(data));
+    window.onload = function() {
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
+
+        const saved = localStorage.getItem('tTimeMultiData_v6');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            for (let k in timers) {
+                if (parsed[k]) timers[k] = parsed[k];
+            }
+        }
+        
+        switchTab(currentTab);
+        setInterval(uiRenderLoop, 100);
+    };
+
+    function globalSave() {
+        localStorage.setItem('tTimeMultiData_v6', JSON.stringify(timers));
     }
 
-    function setMode(m) {
-        mode = m;
+    function switchTab(tabNum) {
+        if(timers[currentTab].phase === 'READY') {
+            timers[currentTab].sVal = parseFloat(document.getElementById('inputStart').value) || 3;
+            timers[currentTab].eVal = parseFloat(document.getElementById('inputEnd').value) || 4;
+            timers[currentTab].totalTarget = parseFloat(document.getElementById('inputTotal').value) || 100;
+        }
+
+        document.getElementById(`tab${currentTab}`).classList.remove('tab-active');
+        currentTab = tabNum;
+        document.getElementById(`tab${currentTab}`).classList.add('tab-active');
+
+        const t = timers[currentTab];
+        applyModeUI(t.mode);
+        document.getElementById('inputStart').value = t.sVal;
+        document.getElementById('inputEnd').value = t.eVal;
+        document.getElementById('inputTotal').value = t.totalTarget;
+
+        renderStaticUI();
+    }
+
+    function changeMode(m) {
+        timers[currentTab].mode = m;
+        applyModeUI(m);
+        globalSave();
+    }
+
+    function applyModeUI(m) {
         document.getElementById('modePct').className = m === 'pct' ? 'mode-btn mode-active' : 'mode-btn';
         document.getElementById('modeNum').className = m === 'num' ? 'mode-btn mode-active' : 'mode-btn';
         document.getElementById('totalGroup').style.display = m === 'num' ? 'block' : 'none';
         document.getElementById('unitLive').innerText = m === 'pct' ? '％' : '個';
         document.getElementById('lblPerUnit').innerText = m === 'pct' ? '1％' : '1個';
         document.getElementById('lblFull').innerText = m === 'pct' ? '100％' : '合計';
-        saveData();
+    }
+
+    function renderStaticUI() {
+        const t = timers[currentTab];
+        const btn = document.getElementById('mainBtn');
+        const info = document.getElementById('info-area');
+        const result = document.getElementById('resultArea');
+        const topReset = document.getElementById('topResetBtn');
+
+        if (t.phase === 'READY') {
+            result.style.display = "none";
+            info.innerText = "";
+            btn.style.display = "block";
+            btn.innerText = "ここから測る";
+            btn.style.background = "var(--primary)";
+            btn.style.color = "#1a1a1a";
+            topReset.style.display = "none";
+        } else if (t.phase === 'MEASURING') {
+            result.style.display = "none";
+            btn.style.display = "block";
+            btn.innerText = `${t.eVal}${t.mode==='pct'?'%':'個'} で確定`;
+            btn.style.background = "#555"; 
+            btn.style.color = "#fff";
+            topReset.style.display = "inline-block";
+        } else if (t.phase === 'FINISHED') {
+            result.style.display = "block";
+            info.innerHTML = "";
+            topReset.style.display = "inline-block";
+            
+            const now = Date.now();
+            if (t.targetFinishTime - now <= 500) { // 誤差を考慮して0.5秒未満なら完了扱い
+                btn.style.display = "block";
+                btn.innerText = "クリアして次へ";
+                btn.style.background = "#444";
+                btn.style.color = "#aaa";
+            } else {
+                btn.style.display = "none";
+            }
+        }
+    }
+
+    function uiRenderLoop() {
+        const now = Date.now();
+        
+        for (let i = 1; i <= 3; i++) {
+            const t = timers[i];
+            if (t.phase === 'FINISHED') {
+                const rem = (t.targetFinishTime - now) / 1000;
+                
+                // 現在値の計算
+                t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
+                
+                /* 【絶対着地ロジック】目標に達するか、残り時間が0.2秒以下なら強制的に「100%完了状態」にする */
+                if (rem <= 0.2 || t.currentEstimatedVal >= t.totalTarget) {
+                    t.currentEstimatedVal = t.totalTarget;
+                }
+
+                // 完了フラグ判定の強化（Chromeのミリ秒の端数バグを吸収するため、残り0.2秒以下で完了とみなす）
+                if (rem > 0.2 && t.currentEstimatedVal < t.totalTarget) {
+                    document.getElementById(`badge${i}`).style.display = 'inline-block';
+                } else {
+                    document.getElementById(`badge${i}`).style.display = 'none';
+                    if (!t.notified) {
+                        sendPushNotification(i);
+                        t.notified = true;
+                        globalSave();
+                        if(i === currentTab) renderStaticUI();
+                    }
+                }
+            } else {
+                document.getElementById(`badge${i}`).style.display = 'none';
+            }
+        }
+        
+        const activeTimer = timers[currentTab];
+        if (activeTimer.phase === 'MEASURING') {
+            const elapsed = ((Date.now() - activeTimer.startTime) / 1000).toFixed(1);
+            document.getElementById('info-area').innerHTML = `<div style="font-size: 2rem; color:#fff; font-weight:bold;">${elapsed}秒</div>`;
+        } else if (activeTimer.phase === 'FINISHED') {
+            updateFinishedDisplaySmooth(activeTimer, now);
+        }
+    }
+
+    function updateFinishedDisplaySmooth(t, now) {
+        const rem = (t.targetFinishTime - now) / 1000;
+        
+        // 安全ガード：万が一計算速度が0以下（エラー）になった場合は表示を維持してフリーズを防ぐ
+        if (!t.speedPerMs || t.speedPerMs <= 0) {
+            return; 
+        }
+        
+        const timePerUnitMs = 1 / t.speedPerMs;
+
+        document.getElementById('valPerMin').innerText = (t.speedPerMs * 60000).toFixed(1) + (t.mode==='pct'?'%':'個');
+        document.getElementById('valPerUnit').innerText = (timePerUnitMs / 1000).toFixed(1) + "秒";
+        document.getElementById('valFullDuration').innerText = formatMinSec((timePerUnitMs * t.totalTarget) / 1000);
+
+        const calcTime = (p) => {
+            const target = t.totalTarget * p;
+            if (target <= t.eVal) return "到達済";
+            return new Date(t.confirmTime + timePerUnitMs * (target - t.eVal)).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        };
+
+        document.getElementById('valFinish').innerText = new Date(t.targetFinishTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        document.getElementById('m10').innerText = calcTime(0.1);
+        document.getElementById('m50').innerText = calcTime(0.5);
+        document.getElementById('m90').innerText = calcTime(0.9);
+        
+        /* 【Chrome誤差対策】残り0.2秒以下になったら、四捨五入のバグを無視して100%表示へ固定 */
+        if (rem <= 0.2 || t.currentEstimatedVal >= t.totalTarget) {
+            document.getElementById('valRemainingCountdown').innerText = "完了！";
+            document.getElementById('pauseBtnInline').style.display = "none";
+            document.getElementById('valLiveProgress').innerText = t.totalTarget.toFixed(t.mode==='pct'?2:0);
+            document.getElementById('barFill').style.width = "100%";
+            
+            const btn = document.getElementById('mainBtn');
+            if (btn.style.display !== "block") {
+                btn.style.display = "block";
+                btn.innerText = "クリアして次へ";
+                btn.style.background = "#444";
+                btn.style.color = "#aaa";
+            }
+        } else {
+            document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSecSmooth(rem);
+            document.getElementById('pauseBtnInline').style.display = "block";
+            document.getElementById('valLiveProgress').innerText = t.currentEstimatedVal.toFixed(2);
+            document.getElementById('barFill').style.width = (t.currentEstimatedVal / t.totalTarget * 100) + "%";
+            document.getElementById('mainBtn').style.display = "none";
+        }
+    }
+
+    function handleClick() {
+        const t = timers[currentTab];
+        if (t.phase === 'READY') {
+            t.sVal = parseFloat(document.getElementById('inputStart').value);
+            t.eVal = parseFloat(document.getElementById('inputEnd').value);
+            t.totalTarget = (t.mode === 'pct') ? 100 : parseFloat(document.getElementById('inputTotal').value);
+
+            t.startTime = Date.now();
+            t.phase = 'MEASURING';
+            t.currentEstimatedVal = t.sVal;
+            globalSave();
+            renderStaticUI();
+        } else if (t.phase === 'MEASURING') {
+            t.confirmTime = Date.now();
+            const durationMs = t.confirmTime - t.startTime;
+            const diff = t.eVal - t.sVal;
+            if (diff <= 0) { alert("数値を正しく入力してください"); return; }
+            
+            t.speedPerMs = diff / durationMs;
+            t.targetFinishTime = t.confirmTime + ((t.totalTarget - t.eVal) / t.speedPerMs);
+            t.phase = 'FINISHED';
+            t.notified = false;
+            globalSave();
+            renderStaticUI();
+        } else if (t.phase === 'FINISHED') {
+            softReset();
+        }
     }
 
     function softReset() {
-        phase = 'READY'; clearInterval(timerInterval); clearInterval(countdownInterval);
-        localStorage.removeItem('tTimeSavedData'); // 保存データも消去
+        timers[currentTab] = { mode: timers[currentTab].mode, phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
         document.getElementById('inputStart').value = 3;
         document.getElementById('inputEnd').value = 4;
-        document.getElementById('inputTotal').value = 100;
+        document.getElementById('inputTotal').value = timers[currentTab].mode === 'pct' ? 100 : 100;
+        
         document.getElementById('resultArea').style.display = "none";
-        document.getElementById('info-area').innerText = "";
-        document.getElementById('pauseBtnInline').style.display = "block";
-        const btn = document.getElementById('mainBtn');
-        btn.style.display = "block"; btn.innerText = "ここから測る"; 
-        btn.style.background = "var(--primary)";
+        
+        globalSave();
+        renderStaticUI();
+    }
+
+    function globalAllReset() {
+        if (confirm("すべてのタブ（壱・弐・参）のデータを完全に初期化します。よろしいですか？")) {
+            for (let i = 1; i <= 3; i++) {
+                timers[i] = { mode: timers[i].mode, phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
+            }
+            document.getElementById('inputStart').value = 3;
+            document.getElementById('inputEnd').value = 4;
+            document.getElementById('inputTotal').value = 100;
+            
+            document.getElementById('resultArea').style.display = "none";
+            
+            globalSave();
+            renderStaticUI();
+        }
     }
 
     function pauseAndEdit() {
-        clearInterval(timerInterval);
-        clearInterval(countdownInterval);
-        const roundedVal = Math.floor(currentEstimatedVal);
-        document.getElementById('inputStart').value = roundedVal;
-        document.getElementById('inputEnd').value = roundedVal + 1;
-        phase = 'READY';
-        saveData();
-        document.getElementById('resultArea').style.display = "none";
+        const t = timers[currentTab];
+        const roundedVal = Math.floor(t.currentEstimatedVal);
+        t.sVal = roundedVal;
+        t.eVal = roundedVal + 1;
+        t.phase = 'READY';
+        globalSave();
+        
+        document.getElementById('inputStart').value = t.sVal;
+        document.getElementById('inputEnd').value = t.eVal;
+        renderStaticUI();
         document.getElementById('info-area').innerText = "再設定してください";
-        const btn = document.getElementById('mainBtn');
-        btn.style.display = "block"; btn.innerText = "ここから測る";
-        btn.style.background = "var(--primary)";
         document.getElementById('inputEnd').focus();
     }
 
+    function sendPushNotification(tabNum) {
+        if ("Notification" in window && Notification.permission === "granted") {
+            const titles = { 1: "壱", 2: "弐", 3: "参" };
+            new Notification(`T-Time: [${titles[tabNum]}] 完了`, {
+                body: "予定時刻に到達しました。作業状況を確認してください。",
+                icon: "https://lh3.googleusercontent.com/d/1BfS_86_S3H4FInF5Y29Z-gD67qA8N65v"
+            });
+        }
+    }
+
     function formatMinSec(totalSeconds) {
-        if (totalSeconds <= 0) return "完了！";
+        if (totalSeconds <= 0.2) return "完了！";
         const m = Math.floor(totalSeconds / 60);
         const s = Math.floor(totalSeconds % 60);
         return m + "分" + s + "秒";
     }
 
-    function startResultDisplay() {
-        const timePerUnitMs = 1 / speedPerMs;
-        document.getElementById('valPerMin').innerText = (speedPerMs * 60000).toFixed(1) + (mode==='pct'?'%':'個');
-        document.getElementById('valPerUnit').innerText = (timePerUnitMs / 1000).toFixed(1) + "秒";
-        document.getElementById('valFullDuration').innerText = formatMinSec((timePerUnitMs * totalTarget) / 1000);
-
-        const calcTime = (p) => {
-            const target = totalTarget * p;
-            if (target <= lastEndVal) return "到達済";
-            return new Date(confirmTime + timePerUnitMs * (target - lastEndVal)).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        };
-
-        document.getElementById('valFinish').innerText = new Date(targetFinishTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        document.getElementById('m10').innerText = calcTime(0.1);
-        document.getElementById('m50').innerText = calcTime(0.5);
-        document.getElementById('m90').innerText = calcTime(0.9);
-        
-        document.getElementById('resultArea').style.display = "block";
-        document.getElementById('mainBtn').style.display = "none";
-        document.getElementById('info-area').innerHTML = "";
-        phase = 'FINISHED';
-
-        countdownInterval = setInterval(() => {
-            const now = Date.now();
-            const rem = (targetFinishTime - now) / 1000;
-            document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSec(rem);
-            currentEstimatedVal = lastEndVal + (speedPerMs * (now - confirmTime));
-            if (currentEstimatedVal > totalTarget) currentEstimatedVal = totalTarget;
-            document.getElementById('valLiveProgress').innerText = currentEstimatedVal.toFixed(2);
-            document.getElementById('barFill').style.width = (currentEstimatedVal / totalTarget * 100) + "%";
-            if (rem <= 0) { 
-                document.getElementById('valRemainingCountdown').innerText = "完了！";
-                document.getElementById('pauseBtnInline').style.display = "none";
-                clearInterval(countdownInterval); 
-            }
-        }, 100);
-    }
-
-    function handleClick() {
-        const btn = document.getElementById('mainBtn');
-        const info = document.getElementById('info-area');
-        const sVal = parseFloat(document.getElementById('inputStart').value);
-        const eVal = parseFloat(document.getElementById('inputEnd').value);
-        totalTarget = (mode === 'pct') ? 100 : parseFloat(document.getElementById('inputTotal').value);
-
-        if (phase === 'READY') {
-            startTime = Date.now();
-            phase = 'MEASURING';
-            currentEstimatedVal = sVal; 
-            saveData();
-            info.innerHTML = `<div id="stopwatch" style="font-size: 2rem; color:#fff; font-weight:bold;">0.0秒</div>`;
-            btn.innerText = `${eVal}${mode==='pct'?'%':'個'} で確定`;
-            btn.style.background = "#555"; btn.style.color = "#fff";
-            timerInterval = setInterval(() => {
-                const elapsed = (Date.now() - startTime) / 1000;
-                const sw = document.getElementById('stopwatch');
-                if(sw) sw.innerText = `${elapsed.toFixed(1)}秒`;
-            }, 100);
-        } else if (phase === 'MEASURING') {
-            clearInterval(timerInterval);
-            confirmTime = Date.now();
-            lastEndVal = eVal;
-            const durationMs = confirmTime - startTime;
-            const diff = eVal - sVal;
-            if (diff <= 0) { alert("数値を正しく入力してください"); return; }
-            speedPerMs = diff / durationMs;
-            targetFinishTime = confirmTime + ((totalTarget - eVal) / speedPerMs);
-            saveData();
-            startResultDisplay();
-        }
+    function formatMinSecSmooth(totalSeconds) {
+        if (totalSeconds <= 0.2) return "完了！";
+        const m = Math.floor(totalSeconds / 60);
+        const s = Math.floor(totalSeconds % 60);
+        const ms = Math.floor((totalSeconds % 1) * 10);
+        return `${m}分${s}秒${ms}`;
     }
 </script>
 </body>
