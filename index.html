@@ -53,7 +53,6 @@
         .live-value { font-size: 1.8rem; font-weight: bold; color: #fff; }
         
         .progress-bar-bg { width: 100%; height: 8px; background: #333; border-radius: 4px; margin-top: 8px; overflow: hidden; }
-        /* 【重要】初期状態はtransitionなし。JSで滑らかさを制御 */
         .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; }
         .progress-bar-fill.smooth { transition: width 0.1s linear; }
         
@@ -141,7 +140,7 @@
         }
 
         for (let i = 1; i <= 3; i++) {
-            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v6`);
+            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v7`);
             if (saved) {
                 timers[i] = JSON.parse(saved);
             }
@@ -152,7 +151,7 @@
     };
 
     function saveTabSpecific(tabNum) {
-        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v6`, JSON.stringify(timers[tabNum]));
+        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v7`, JSON.stringify(timers[tabNum]));
     }
 
     function switchTab(tabNum) {
@@ -168,8 +167,7 @@
 
         const now = Date.now();
         
-        // 切り替え先のタブのデータを現在のリアルタイム時間で一発超高速再計算
-        if (t.phase === 'FINISHED') {
+        if (t.phase === 'FINISHED' || t.targetFinishTime) {
             if (t.targetFinishTime && now < t.targetFinishTime && t.speedPerMs > 0) {
                 t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
             } else if (t.targetFinishTime && now >= t.targetFinishTime) {
@@ -177,16 +175,14 @@
             }
         }
 
-        // 【最強のChrome対策】切り替えた「その瞬間」だけアニメーション用クラス（smooth）を剥ぎ取り、フリーズを物理的に防ぐ
         const bar = document.getElementById('barFill');
         bar.classList.remove('smooth');
 
         renderStaticUI();
-        if (t.phase === 'FINISHED') {
+        if (t.targetFinishTime) {
             updateFinishedDisplaySmooth(t, now);
         }
 
-        // 描画が強制反映された直後（20ミリ秒後）に、滑らかに動くクラスを再付与する
         setTimeout(() => {
             bar.classList.add('smooth');
         }, 20);
@@ -230,7 +226,7 @@
             btn.style.color = "#fff";
             btn.style.display = "block";
             topReset.style.display = "inline-block";
-        } else if (t.phase === 'FINISHED') {
+        } else if (t.phase === 'FINISHED' || t.targetFinishTime) {
             result.style.display = "block";
             info.innerHTML = "";
             topReset.style.display = "inline-block";
@@ -250,11 +246,11 @@
     function uiRenderLoop() {
         const now = Date.now();
         
-        // 裏側でのデータ計算とバッジ（赤丸）の判定のみを完全隔離して実行
+        // 【隔離処理】裏の計算ロジックとバッジの制御のみを行う
         for (let i = 1; i <= 3; i++) {
             const t = timers[i];
-            if (t.phase === 'FINISHED') {
-                if (t.targetFinishTime && now >= t.targetFinishTime) {
+            if (t.targetFinishTime) {
+                if (now >= t.targetFinishTime) {
                     t.currentEstimatedVal = t.totalTarget;
                     document.getElementById(`badge${i}`).style.display = 'none'; 
                     if (!t.notified) {
@@ -266,17 +262,21 @@
                     t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
                     if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
                     
-                    document.getElementById(`badge${i}`).style.display = 'inline-block'; 
+                    if (t.phase === 'FINISHED') {
+                        document.getElementById(`badge${i}`).style.display = 'inline-block'; 
+                    } else {
+                        document.getElementById(`badge${i}`).style.display = 'none';
+                    }
                 }
             } else {
                 document.getElementById(`badge${i}`).style.display = 'none';
             }
         }
         
-        // 表側の画面更新は現在のアクティブタブのみ
+        // 【最重要改善】現在のフェーズ名に関わらず、動いている予測データ（targetFinishTime）があれば無条件で現在のタブを1秒ごとに強制再描写する
         renderStaticUI(); 
         const activeTimer = timers[currentTab];
-        if (activeTimer.phase === 'FINISHED') {
+        if (activeTimer.targetFinishTime) {
             updateFinishedDisplaySmooth(activeTimer, now);
         }
     }
@@ -347,7 +347,7 @@
             t.notified = false;
             saveTabSpecific(currentTab);
             renderStaticUI();
-        } else if (t.phase === 'FINISHED') {
+        } else if (t.phase === 'FINISHED' || t.targetFinishTime) {
             softReset();
         }
     }
@@ -382,6 +382,7 @@
         t.sVal = roundedVal;
         t.eVal = roundedVal + 1;
         t.phase = 'READY';
+        t.targetFinishTime = null; // 再設定時は予測時間を一度クリア
         saveTabSpecific(currentTab);
         
         document.getElementById('inputStart').value = t.sVal;
