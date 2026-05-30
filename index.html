@@ -22,8 +22,7 @@
         
         .subtitle-area { margin-bottom: 15px; font-size: 1.0rem; color:#aaa; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 32px; }
         
-        .top-reset-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 2px 10px; border-radius: 6px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.8rem; font-weight: bold; -webkit-tap-highlight-color: transparent; display: none; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .top-reset-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 2px 10px; border-radius: 6px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.8rem; font-weight: bold; -webkit-tap-highlight-color: transparent; display: none; }
 
         .multi-tabs { display: flex; gap: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px; }
         .tab-btn { flex: 1; padding: 12px 5px; font-size: 1.3rem; border: none; border-radius: 8px; background: transparent; color: #777; cursor: pointer; font-family: var(--font-gyosho); transition: all 0.2s; -webkit-tap-highlight-color: transparent; font-weight: bold; }
@@ -42,7 +41,6 @@
         
         .all-reset-area { margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
         .all-reset-btn { background: transparent; border: 1px solid #444; color: #666; width: 80%; padding: 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
-        .all-reset-btn:active { background: rgba(230, 57, 70, 0.1); border-color: var(--accent); color: var(--accent); }
 
         .result { margin-top: 0; display: none; }
         .finish-focus { background: rgba(230, 57, 70, 0.05); padding: 15px 10px; border-radius: 20px; margin-top: 15px; margin-bottom: 10px; position: relative; }
@@ -139,7 +137,7 @@
             Notification.requestPermission();
         }
 
-        const saved = localStorage.getItem('tTimeMulti_Ultimate_v2');
+        const saved = localStorage.getItem('tTimeMulti_Ultimate_v3');
         if (saved) {
             const parsed = JSON.parse(saved);
             for (let k in timers) {
@@ -152,7 +150,7 @@
     };
 
     function globalSave() {
-        localStorage.setItem('tTimeMulti_Ultimate_v2', JSON.stringify(timers));
+        localStorage.setItem('tTimeMulti_Ultimate_v3', JSON.stringify(timers));
     }
 
     function switchTab(tabNum) {
@@ -219,7 +217,7 @@
             topReset.style.display = "inline-block";
             
             const now = Date.now();
-            if (now >= t.targetFinishTime) {
+            if (t.targetFinishTime && now >= t.targetFinishTime) {
                 btn.style.display = "block";
                 btn.innerText = "クリアして次へ";
                 btn.style.background = "#444";
@@ -236,7 +234,8 @@
         for (let i = 1; i <= 3; i++) {
             const t = timers[i];
             if (t.phase === 'FINISHED') {
-                if (now >= t.targetFinishTime) {
+                // 【安全対策】計測データが正常な場合のみ計算を行う
+                if (t.targetFinishTime && now >= t.targetFinishTime) {
                     t.currentEstimatedVal = t.totalTarget;
                     document.getElementById(`badge${i}`).style.display = 'none';
                     if (!t.notified) {
@@ -245,7 +244,7 @@
                         globalSave();
                         if(i === currentTab) renderStaticUI();
                     }
-                } else {
+                } else if (t.speedPerMs > 0) {
                     t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
                     if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
                     document.getElementById(`badge${i}`).style.display = 'inline-block';
@@ -262,7 +261,9 @@
     }
 
     function updateFinishedDisplaySmooth(t, now) {
-        if (!t.speedPerMs || t.speedPerMs <= 0) return; 
+        // 【完全フリーズ防御】速度がゼロ、あるいは未登録なら画面の再計算を完全スキップ
+        if (!t.speedPerMs || t.speedPerMs <= 0 || !t.targetFinishTime) return; 
+        
         const timePerUnitMs = 1 / t.speedPerMs;
 
         document.getElementById('valPerMin').innerText = (t.speedPerMs * 60000).toFixed(1) + (t.mode==='pct'?'%':'個');
@@ -282,7 +283,6 @@
         
         const rem = (t.targetFinishTime - now) / 1000;
         const countdownText = formatMinSec(rem);
-        document.getElementById('valRemainingCountdown').innerText = (countdownText === "完了！") ? "完了！" : "あと " + countdownText;
         
         if (countdownText === "完了！" || now >= t.targetFinishTime || t.currentEstimatedVal >= t.totalTarget) {
             document.getElementById('valRemainingCountdown').innerText = "完了！";
@@ -296,6 +296,7 @@
             btn.style.background = "#444";
             btn.style.color = "#aaa";
         } else {
+            document.getElementById('valRemainingCountdown').innerText = "あと " + countdownText;
             document.getElementById('pauseBtnInline').style.display = "block";
             document.getElementById('valLiveProgress').innerText = t.currentEstimatedVal.toFixed(2);
             document.getElementById('barFill').style.width = (t.currentEstimatedVal / t.totalTarget * 100) + "%";
@@ -335,7 +336,7 @@
         timers[currentTab] = { mode: timers[currentTab].mode, phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
         document.getElementById('inputStart').value = 3;
         document.getElementById('inputEnd').value = 4;
-        document.getElementById('inputTotal').value = timers[currentTab].mode === 'pct' ? 100 : 100;
+        document.getElementById('inputTotal').value = 100;
         document.getElementById('resultArea').style.display = "none";
         globalSave();
         renderStaticUI();
@@ -380,9 +381,8 @@
         }
     }
 
-    // 【完全防御】1秒未満、あるいはマイナス秒数になったら、例外なく「完了！」を即座に叩き返す
     function formatMinSec(totalSeconds) {
-        if (totalSeconds < 1.0) return "完了！";
+        if (isNaN(totalSeconds) || totalSeconds < 1.0) return "完了！";
         const m = Math.floor(totalSeconds / 60);
         const s = Math.floor(totalSeconds % 60);
         return m + "分" + s + "秒";
