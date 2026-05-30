@@ -20,13 +20,12 @@
         .container { width: 100%; max-width: 500px; background: var(--card); border-radius: 30px; padding: 15px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid rgba(201, 160, 99, 0.2); text-align: center; }
         h1 { font-size: 2.5rem; color: var(--primary); margin: 0; font-weight: 600; letter-spacing: 4px; }
         
-        /* 【修正】サブタイトルの文字サイズを少し大きく */
-        .subtitle-area { margin-bottom: 15px; font-size: 1.0rem; color:#aaa; font-weight: 600; }
+        .subtitle-area { margin-bottom: 15px; font-size: 1.0rem; color:#aaa; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 32px; }
         
-        /* マルチタブ用のスタイル */
+        .top-reset-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 2px 10px; border-radius: 6px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.8rem; font-weight: bold; -webkit-tap-highlight-color: transparent; display: none; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
         .multi-tabs { display: flex; gap: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px; }
-        
-        /* 【修正】タブの文字サイズを大きく調整 */
         .tab-btn { flex: 1; padding: 12px 5px; font-size: 1.3rem; border: none; border-radius: 8px; background: transparent; color: #777; cursor: pointer; font-family: var(--font-gyosho); transition: all 0.2s; -webkit-tap-highlight-color: transparent; font-weight: bold; }
         .tab-btn.tab-active { background: #333; color: var(--primary); font-weight: bold; border: 1px solid rgba(201, 160, 99, 0.3); }
         .tab-badge { display: inline-block; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; margin-left: 4px; display: none; vertical-align: middle; }
@@ -38,7 +37,14 @@
         .input-group { flex: 1; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 15px; text-align: left; }
         label { display: block; font-size: 0.8rem; color: var(--primary); }
         input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #444; color: white; font-size: 1.5rem; outline: none; font-family: var(--font-gyosho); }
-        .main-btn { background: var(--primary); color: #1a1a1a; border: none; width: 100%; padding: 18px; border-radius: 40px; font-size: 1.5rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; }
+        
+        .main-btn { background: var(--primary); color: #1a1a1a; border: none; width: 100%; padding: 18px; border-radius: 40px; font-size: 1.5rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
+        
+        /* 全リセット用のシブいボタンのスタイル */
+        .all-reset-area { margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .all-reset-btn { background: transparent; border: 1px solid #444; color: #666; width: 80%; padding: 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
+        .all-reset-btn:active { background: rgba(230, 57, 70, 0.1); border-color: var(--accent); color: var(--accent); }
+
         .result { margin-top: 0; display: none; }
         .finish-focus { background: rgba(230, 57, 70, 0.05); padding: 15px 10px; border-radius: 20px; margin-top: 15px; margin-bottom: 10px; position: relative; }
         .time-display-large { font-size: 3.2rem; color: var(--accent); font-weight: bold; line-height: 1; margin-bottom: 5px; }
@@ -48,9 +54,6 @@
         .live-progress-container { margin: 12px 0; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
         .live-row { display: flex; justify-content: center; align-items: center; gap: 15px; }
         .live-value { font-size: 1.8rem; font-weight: bold; color: #fff; }
-        
-        /* 【修正】リセットボタンを押しやすいように少し大きく調整 */
-        .reset-btn-inline { background: transparent; border: 1px solid #666; color: #aaa; padding: 5px 14px; border-radius: 8px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.9rem; font-weight: bold; -webkit-tap-highlight-color: transparent; }
         
         .progress-bar-bg { width: 100%; height: 8px; background: #333; border-radius: 4px; margin-top: 8px; overflow: hidden; }
         .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.1s linear; }
@@ -65,7 +68,10 @@
 <body>
 <div class="container">
     <h1>T-Time</h1>
-    <div class="subtitle-area">完了時間を予測します</div>
+    <div class="subtitle-area">
+        <span>完了時間を予測します</span>
+        <button id="topResetBtn" class="top-reset-btn" onclick="softReset()">リセット</button>
+    </div>
 
     <div class="multi-tabs">
         <button id="tab1" class="tab-btn tab-active" onclick="switchTab(1)">壱<span id="badge1" class="tab-badge"></span></button>
@@ -85,6 +91,7 @@
         <div id="totalGroup" class="input-group" style="display:none; margin-bottom:10px;"><label>全体の合計</label><input type="number" id="inputTotal" value="100"></div>
     </div>
     <div id="info-area" style="min-height: 1rem; margin-top:5px;"></div>
+    
     <button id="mainBtn" class="main-btn" onclick="handleClick()">ここから測る</button>
     
     <div id="resultArea" class="result">
@@ -99,7 +106,6 @@
                 <div style="font-size: 0.8rem; color: var(--primary); margin-bottom: 4px;">現在の推定進捗</div>
                 <div class="live-row">
                     <div class="live-value"><span id="valLiveProgress">--</span><span id="unitLive">％</span></div>
-                    <button class="reset-btn-inline" onclick="softReset()">リセット</button>
                 </div>
                 <div class="progress-bar-bg"><div id="barFill" class="progress-bar-fill"></div></div>
             </div>
@@ -114,6 +120,10 @@
             <div class="analysis-item"><span id="lblPerUnit">1単位</span><b><span id="valPerUnit">--</span></b></div>
             <div class="analysis-item"><span id="lblFull">全体</span><b><span id="valFullDuration">--</span></b></div>
         </div>
+    </div>
+
+    <div class="all-reset-area">
+        <button class="all-reset-btn" onclick="globalAllReset()">すべてのタブを初期化</button>
     </div>
 </div>
 
@@ -188,6 +198,7 @@
         const btn = document.getElementById('mainBtn');
         const info = document.getElementById('info-area');
         const result = document.getElementById('resultArea');
+        const topReset = document.getElementById('topResetBtn');
 
         if (t.phase === 'READY') {
             result.style.display = "none";
@@ -196,15 +207,29 @@
             btn.innerText = "ここから測る";
             btn.style.background = "var(--primary)";
             btn.style.color = "#1a1a1a";
+            topReset.style.display = "none";
         } else if (t.phase === 'MEASURING') {
             result.style.display = "none";
             btn.style.display = "block";
             btn.innerText = `${t.eVal}${t.mode==='pct'?'%':'個'} で確定`;
-            btn.style.background = "#555"; btn.style.color = "#fff";
+            btn.style.background = "#555"; 
+            btn.style.color = "#fff";
+            topReset.style.display = "none";
         } else if (t.phase === 'FINISHED') {
-            btn.style.display = "none";
-            info.innerHTML = "";
             result.style.display = "block";
+            info.innerHTML = "";
+            
+            const now = Date.now();
+            if (t.targetFinishTime - now <= 0) {
+                btn.style.display = "block";
+                btn.innerText = "クリアして次へ";
+                btn.style.background = "#444";
+                btn.style.color = "#aaa";
+                topReset.style.display = "inline-block";
+            } else {
+                btn.style.display = "none";
+                topReset.style.display = "none";
+            }
         }
     }
 
@@ -261,10 +286,28 @@
         document.getElementById('m50').innerText = calcTime(0.5);
         document.getElementById('m90').innerText = calcTime(0.9);
         
-        document.getElementById('valRemainingCountdown').innerText = rem <= 0 ? "完了！" : "あと " + formatMinSecSmooth(rem);
-        document.getElementById('pauseBtnInline').style.display = rem <= 0 ? "none" : "block";
-        document.getElementById('valLiveProgress').innerText = t.currentEstimatedVal.toFixed(2);
-        document.getElementById('barFill').style.width = (t.currentEstimatedVal / t.totalTarget * 100) + "%";
+        if (rem <= 0) {
+            document.getElementById('valRemainingCountdown').innerText = "完了！";
+            document.getElementById('pauseBtnInline').style.display = "none";
+            document.getElementById('valLiveProgress').innerText = t.totalTarget.toFixed(2);
+            document.getElementById('barFill').style.width = "100%";
+            
+            const btn = document.getElementById('mainBtn');
+            if (btn.style.display !== "block") {
+                btn.style.display = "block";
+                btn.innerText = "クリアして次へ";
+                btn.style.background = "#444";
+                btn.style.color = "#aaa";
+            }
+            document.getElementById('topResetBtn').style.display = "inline-block";
+        } else {
+            document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSecSmooth(rem);
+            document.getElementById('pauseBtnInline').style.display = "block";
+            document.getElementById('valLiveProgress').innerText = t.currentEstimatedVal.toFixed(2);
+            document.getElementById('barFill').style.width = (t.currentEstimatedVal / t.totalTarget * 100) + "%";
+            document.getElementById('mainBtn').style.display = "none";
+            document.getElementById('topResetBtn').style.display = "none";
+        }
     }
 
     function handleClick() {
@@ -291,6 +334,8 @@
             t.notified = false;
             globalSave();
             renderStaticUI();
+        } else if (t.phase === 'FINISHED') {
+            softReset();
         }
     }
 
@@ -301,6 +346,20 @@
         document.getElementById('inputTotal').value = 100;
         globalSave();
         renderStaticUI();
+    }
+
+    /* 【追加】全タブを一発でREADY状態に戻す関数（安全ストッパー付き） */
+    function globalAllReset() {
+        if (confirm("すべてのタブ（壱・弐・参）のデータを完全に初期化します。よろしいですか？")) {
+            for (let i = 1; i <= 3; i++) {
+                timers[i] = { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
+            }
+            document.getElementById('inputStart').value = 3;
+            document.getElementById('inputEnd').value = 4;
+            document.getElementById('inputTotal').value = 100;
+            globalSave();
+            renderStaticUI();
+        }
     }
 
     function pauseAndEdit() {
