@@ -138,7 +138,7 @@
         }
 
         for (let i = 1; i <= 3; i++) {
-            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v3`);
+            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v4`);
             if (saved) {
                 timers[i] = JSON.parse(saved);
             }
@@ -149,7 +149,7 @@
     };
 
     function saveTabSpecific(tabNum) {
-        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v3`, JSON.stringify(timers[tabNum]));
+        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v4`, JSON.stringify(timers[tabNum]));
     }
 
     function switchTab(tabNum) {
@@ -163,11 +163,7 @@
         document.getElementById('inputEnd').value = t.eVal;
         document.getElementById('inputTotal').value = t.totalTarget;
 
-        // 【大改良】切り替えた瞬間に、そのタブ固有のデータをもとに画面表示を強制リフレッシュする
         renderStaticUI();
-        if (t.phase === 'FINISHED') {
-            updateFinishedDisplaySmooth(t, Date.now());
-        }
     }
 
     function changeMode(m) {
@@ -228,33 +224,31 @@
     function uiRenderLoop() {
         const now = Date.now();
         
-        // 全タブの内部計算と赤丸（バッジ）判定
+        // 【完全隔離】裏側の計算ループからは、メイン画面を書き換える処理（renderStaticUI等）を一切排除
         for (let i = 1; i <= 3; i++) {
             const t = timers[i];
             if (t.phase === 'FINISHED') {
                 if (t.targetFinishTime && now >= t.targetFinishTime) {
                     t.currentEstimatedVal = t.totalTarget;
-                    document.getElementById(`badge${i}`).style.display = 'none'; // 完了したら赤丸を消去
+                    document.getElementById(`badge${i}`).style.display = 'none'; // 赤丸消去
                     if (!t.notified) {
                         sendPushNotification(i);
                         t.notified = true;
                         saveTabSpecific(i);
-                        if(i === currentTab) renderStaticUI();
                     }
                 } else if (t.speedPerMs > 0) {
-                    // 現在のリアルタイムな時間をベースに、進捗を正しく再取得
                     t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
                     if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
                     
-                    // まだ動いているなら赤丸（badge）を表示
-                    document.getElementById(`badge${i}`).style.display = 'inline-block';
+                    document.getElementById(`badge${i}`).style.display = 'inline-block'; // 動いている間は赤丸
                 }
             } else {
                 document.getElementById(`badge${i}`).style.display = 'none';
             }
         }
         
-        // 画面描画は現在開いているタブのみに徹底制限
+        // メインUIの毎秒リフレッシュは、現在アクティブなタブ「だけ」を対象に独立して実行
+        renderStaticUI(); 
         const activeTimer = timers[currentTab];
         if (activeTimer.phase === 'FINISHED') {
             updateFinishedDisplaySmooth(activeTimer, now);
@@ -276,7 +270,6 @@
             return new Date(t.confirmTime + timePerUnitMs * (target - t.eVal)).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         };
 
-        // 他のタブに惑わされず、このタブの本当の予定時刻を反映させる
         document.getElementById('valFinish').innerText = new Date(t.targetFinishTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         document.getElementById('m10').innerText = calcTime(0.1);
         document.getElementById('m50').innerText = calcTime(0.5);
