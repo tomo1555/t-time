@@ -22,6 +22,7 @@
         
         .subtitle-area { margin-bottom: 15px; font-size: 1.0rem; color:#aaa; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 32px; }
         
+        /* 進行中や完了後、いつでも押せるリセットボタン */
         .top-reset-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 2px 10px; border-radius: 6px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.8rem; font-weight: bold; -webkit-tap-highlight-color: transparent; display: none; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -141,7 +142,7 @@
             Notification.requestPermission();
         }
 
-        const saved = localStorage.getItem('tTimeMultiData_v3');
+        const saved = localStorage.getItem('tTimeMultiData_v4');
         if (saved) {
             const parsed = JSON.parse(saved);
             for (let k in timers) {
@@ -149,12 +150,12 @@
             }
         }
         
-        switchTab(1);
+        switchTab(currentTab);
         animationInterval = setInterval(uiRenderLoop, 100);
     };
 
     function globalSave() {
-        localStorage.setItem('tTimeMultiData_v3', JSON.stringify(timers));
+        localStorage.setItem('tTimeMultiData_v4', JSON.stringify(timers));
     }
 
     function switchTab(tabNum) {
@@ -192,6 +193,7 @@
         document.getElementById('lblFull').innerText = m === 'pct' ? '100％' : '合計';
     }
 
+    /* 【バグ修正】ページ更新時や状態変化時にUIを完全に復元するよう強化 */
     function renderStaticUI() {
         const t = timers[currentTab];
         const btn = document.getElementById('mainBtn');
@@ -213,10 +215,11 @@
             btn.innerText = `${t.eVal}${t.mode==='pct'?'%':'個'} で確定`;
             btn.style.background = "#555"; 
             btn.style.color = "#fff";
-            topReset.style.display = "none";
+            topReset.style.display = "inline-block"; // 進行中もいつでもリセット可能に
         } else if (t.phase === 'FINISHED') {
             result.style.display = "block";
             info.innerHTML = "";
+            topReset.style.display = "inline-block"; // 完了後もリセット可能に
             
             const now = Date.now();
             if (t.targetFinishTime - now <= 0) {
@@ -224,10 +227,8 @@
                 btn.innerText = "クリアして次へ";
                 btn.style.background = "#444";
                 btn.style.color = "#aaa";
-                topReset.style.display = "inline-block";
             } else {
                 btn.style.display = "none";
-                topReset.style.display = "none";
             }
         }
     }
@@ -239,8 +240,14 @@
             const t = timers[i];
             if (t.phase === 'FINISHED') {
                 const rem = (t.targetFinishTime - now) / 1000;
+                
+                // 推定値の計算
                 t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
-                if (t.currentEstimatedVal > t.totalTarget) t.currentEstimatedVal = t.totalTarget;
+                
+                /* 【修正】99.9%病の撲滅：時間が過ぎたら強制的に100%（目標値）にする */
+                if (rem <= 0 || t.currentEstimatedVal >= t.totalTarget) {
+                    t.currentEstimatedVal = t.totalTarget;
+                }
 
                 if (rem > 0) {
                     document.getElementById(`badge${i}`).style.display = 'inline-block';
@@ -250,6 +257,7 @@
                         sendPushNotification(i);
                         t.notified = true;
                         globalSave();
+                        if(i === currentTab) renderStaticUI(); // 自タブが完了したら「クリアして次へ」を出す
                     }
                 }
             } else {
@@ -285,10 +293,11 @@
         document.getElementById('m50').innerText = calcTime(0.5);
         document.getElementById('m90').innerText = calcTime(0.9);
         
+        /* 【修正】99.9%で止まる不快感を完全に排除する着地ロジック */
         if (rem <= 0) {
             document.getElementById('valRemainingCountdown').innerText = "完了！";
             document.getElementById('pauseBtnInline').style.display = "none";
-            document.getElementById('valLiveProgress').innerText = t.totalTarget.toFixed(2);
+            document.getElementById('valLiveProgress').innerText = t.totalTarget.toFixed(t.mode==='pct'?2:0);
             document.getElementById('barFill').style.width = "100%";
             
             const btn = document.getElementById('mainBtn');
@@ -298,14 +307,12 @@
                 btn.style.background = "#444";
                 btn.style.color = "#aaa";
             }
-            document.getElementById('topResetBtn').style.display = "inline-block";
         } else {
             document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSecSmooth(rem);
             document.getElementById('pauseBtnInline').style.display = "block";
             document.getElementById('valLiveProgress').innerText = t.currentEstimatedVal.toFixed(2);
             document.getElementById('barFill').style.width = (t.currentEstimatedVal / t.totalTarget * 100) + "%";
             document.getElementById('mainBtn').style.display = "none";
-            document.getElementById('topResetBtn').style.display = "none";
         }
     }
 
@@ -338,14 +345,13 @@
         }
     }
 
-    /* 【変更箇所】リセット処理が走ったら、即座に結果表示エリアを非表示にする */
+    /* 【変更】リセットが走ったらカードも非表示にしてREADYに戻す */
     function softReset() {
-        timers[currentTab] = { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
+        timers[currentTab] = { mode: timers[currentTab].mode, phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
         document.getElementById('inputStart').value = 3;
         document.getElementById('inputEnd').value = 4;
-        document.getElementById('inputTotal').value = 100;
+        document.getElementById('inputTotal').value = timers[currentTab].mode === 'pct' ? 100 : 100;
         
-        // 完了表示エリアを即座に隠す
         document.getElementById('resultArea').style.display = "none";
         
         globalSave();
@@ -355,13 +361,12 @@
     function globalAllReset() {
         if (confirm("すべてのタブ（壱・弐・参）のデータを完全に初期化します。よろしいですか？")) {
             for (let i = 1; i <= 3; i++) {
-                timers[i] = { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
+                timers[i] = { mode: timers[i].mode, phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
             }
             document.getElementById('inputStart').value = 3;
             document.getElementById('inputEnd').value = 4;
             document.getElementById('inputTotal').value = 100;
             
-            // 完了表示エリアを即座に隠す
             document.getElementById('resultArea').style.display = "none";
             
             globalSave();
