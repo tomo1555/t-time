@@ -139,7 +139,7 @@
             Notification.requestPermission();
         }
 
-        const saved = localStorage.getItem('tTimeMultiData_v7');
+        const saved = localStorage.getItem('tTimeMultiData_v8');
         if (saved) {
             const parsed = JSON.parse(saved);
             for (let k in timers) {
@@ -148,12 +148,11 @@
         }
         
         switchTab(currentTab);
-        // 【大改造】1秒に1回だけの超軽量同期ループ。これならChromeの電力監視網を完全にすり抜けます。
-        setInterval(uiRenderLoop, 1000);
+        setInterval(uiRenderLoop, 1000); // 1秒間隔の軽量動作
     };
 
     function globalSave() {
-        localStorage.setItem('tTimeMultiData_v7', JSON.stringify(timers));
+        localStorage.setItem('tTimeMultiData_v8', JSON.stringify(timers));
     }
 
     function switchTab(tabNum) {
@@ -208,7 +207,7 @@
             topReset.style.display = "none";
         } else if (t.phase === 'MEASURING') {
             result.style.display = "none";
-            info.innerHTML = `<div style="font-size: 1.3rem; color:#aaa; font-weight:bold; margin-bottom:10px;">計測中... (画面停止防御)</div>`;
+            info.innerHTML = `<div style="font-size: 1.3rem; color:#aaa; font-weight:bold; margin-bottom:10px;">計測中...</div>`;
             btn.style.display = "block";
             btn.innerText = `${t.eVal}${t.mode==='pct'?'%':'個'} で確定`;
             btn.style.background = "#555"; 
@@ -220,7 +219,7 @@
             topReset.style.display = "inline-block";
             
             const now = Date.now();
-            if (t.targetFinishTime - now <= 1000) { // 1秒未満ならクリアボタンを露出
+            if (now >= t.targetFinishTime) { // 予定時間になったらボタン露出
                 btn.style.display = "block";
                 btn.innerText = "クリアして次へ";
                 btn.style.background = "#444";
@@ -237,17 +236,9 @@
         for (let i = 1; i <= 3; i++) {
             const t = timers[i];
             if (t.phase === 'FINISHED') {
-                const rem = (t.targetFinishTime - now) / 1000;
-                t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
-                
-                // 100%絶対着地ガード
-                if (rem <= 0.5 || t.currentEstimatedVal >= t.totalTarget) {
+                // 【大賛成ロジック】現在時刻が予定終了時間を超えたら、細かい計算を全てスキップして完了にする
+                if (now >= t.targetFinishTime) {
                     t.currentEstimatedVal = t.totalTarget;
-                }
-
-                if (rem > 0.5 && t.currentEstimatedVal < t.totalTarget) {
-                    document.getElementById(`badge${i}`).style.display = 'inline-block';
-                } else {
                     document.getElementById(`badge${i}`).style.display = 'none';
                     if (!t.notified) {
                         sendPushNotification(i);
@@ -255,6 +246,9 @@
                         globalSave();
                         if(i === currentTab) renderStaticUI();
                     }
+                } else {
+                    t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
+                    document.getElementById(`badge${i}`).style.display = 'inline-block';
                 }
             } else {
                 document.getElementById(`badge${i}`).style.display = 'none';
@@ -262,15 +256,12 @@
         }
         
         const activeTimer = timers[currentTab];
-        // MEASURING（計測中）のときはミリ秒タイマーをあえて動かさない（Chromeフリーズの元を断つ）
         if (activeTimer.phase === 'FINISHED') {
             updateFinishedDisplaySmooth(activeTimer, now);
         }
     }
 
     function updateFinishedDisplaySmooth(t, now) {
-        const rem = (t.targetFinishTime - now) / 1000;
-        
         if (!t.speedPerMs || t.speedPerMs <= 0) return; 
         const timePerUnitMs = 1 / t.speedPerMs;
 
@@ -289,8 +280,8 @@
         document.getElementById('m50').innerText = calcTime(0.5);
         document.getElementById('m90').innerText = calcTime(0.9);
         
-        // 【絶対着地】残り0.5秒以下なら、Chromeがどんな計算誤差を出そうが問答無用で「完了！」「100%」をスタンプ
-        if (rem <= 0.5 || t.currentEstimatedVal >= t.totalTarget) {
+        // 【0秒完了指定】予定時間を超えたか、計算値が目標に届いたら、文句なしで100%完了にする
+        if (now >= t.targetFinishTime || t.currentEstimatedVal >= t.totalTarget) {
             document.getElementById('valRemainingCountdown').innerText = "完了！";
             document.getElementById('pauseBtnInline').style.display = "none";
             document.getElementById('valLiveProgress').innerText = t.totalTarget.toFixed(t.mode==='pct'?2:0);
@@ -302,6 +293,7 @@
             btn.style.background = "#444";
             btn.style.color = "#aaa";
         } else {
+            const rem = (t.targetFinishTime - now) / 1000;
             document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSecSmooth(rem);
             document.getElementById('pauseBtnInline').style.display = "block";
             document.getElementById('valLiveProgress').innerText = t.currentEstimatedVal.toFixed(2);
@@ -317,7 +309,7 @@
             t.eVal = parseFloat(document.getElementById('inputEnd').value);
             t.totalTarget = (t.mode === 'pct') ? 100 : parseFloat(document.getElementById('inputTotal').value);
 
-            t.startTime = Date.now(); // スタンプ用の「絶対時刻」をスマホに記憶
+            t.startTime = Date.now();
             t.phase = 'MEASURING';
             globalSave();
             renderStaticUI();
@@ -388,15 +380,14 @@
     }
 
     function formatMinSec(totalSeconds) {
-        if (totalSeconds <= 0.5) return "完了！";
+        if (totalSeconds <= 0) return "完了！";
         const m = Math.floor(totalSeconds / 60);
         const s = Math.floor(totalSeconds % 60);
         return m + "分" + s + "秒";
     }
 
-    // カウントダウン表示を秒単位にしてChromeの描画不可を完全に回避
     function formatMinSecSmooth(totalSeconds) {
-        if (totalSeconds <= 0.5) return "完了！";
+        if (totalSeconds <= 0) return "完了！";
         const m = Math.floor(totalSeconds / 60);
         const s = Math.floor(totalSeconds % 60);
         return `${m}分${s}秒`;
