@@ -137,9 +137,8 @@
             Notification.requestPermission();
         }
 
-        // 隔離保存された独立ロッカーからデータを確実に読み出す
         for (let i = 1; i <= 3; i++) {
-            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v2`);
+            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v3`);
             if (saved) {
                 timers[i] = JSON.parse(saved);
             }
@@ -150,11 +149,10 @@
     };
 
     function saveTabSpecific(tabNum) {
-        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v2`, JSON.stringify(timers[tabNum]));
+        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v3`, JSON.stringify(timers[tabNum]));
     }
 
     function switchTab(tabNum) {
-        // 他のタブの数値を巻き込んで上書き破壊する処理を完全に排除
         document.getElementById(`tab${currentTab}`).classList.remove('tab-active');
         currentTab = tabNum;
         document.getElementById(`tab${currentTab}`).classList.add('tab-active');
@@ -165,7 +163,11 @@
         document.getElementById('inputEnd').value = t.eVal;
         document.getElementById('inputTotal').value = t.totalTarget;
 
+        // 【大改良】切り替えた瞬間に、そのタブ固有のデータをもとに画面表示を強制リフレッシュする
         renderStaticUI();
+        if (t.phase === 'FINISHED') {
+            updateFinishedDisplaySmooth(t, Date.now());
+        }
     }
 
     function changeMode(m) {
@@ -226,7 +228,7 @@
     function uiRenderLoop() {
         const now = Date.now();
         
-        // 全タブの状態判定だけをバックグラウンド（Chrome冬眠対策）で静かに処理
+        // 全タブの内部計算と赤丸（バッジ）判定
         for (let i = 1; i <= 3; i++) {
             const t = timers[i];
             if (t.phase === 'FINISHED') {
@@ -240,10 +242,11 @@
                         if(i === currentTab) renderStaticUI();
                     }
                 } else if (t.speedPerMs > 0) {
+                    // 現在のリアルタイムな時間をベースに、進捗を正しく再取得
                     t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
                     if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
                     
-                    // まだ目標値未満で動いている間だけ、タブに赤丸を点灯させる
+                    // まだ動いているなら赤丸（badge）を表示
                     document.getElementById(`badge${i}`).style.display = 'inline-block';
                 }
             } else {
@@ -251,7 +254,7 @@
             }
         }
         
-        // テキストと進捗バーの描画は、「今開いているアクティブタブ」のデータだけを厳格に反映
+        // 画面描画は現在開いているタブのみに徹底制限
         const activeTimer = timers[currentTab];
         if (activeTimer.phase === 'FINISHED') {
             updateFinishedDisplaySmooth(activeTimer, now);
@@ -273,6 +276,7 @@
             return new Date(t.confirmTime + timePerUnitMs * (target - t.eVal)).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         };
 
+        // 他のタブに惑わされず、このタブの本当の予定時刻を反映させる
         document.getElementById('valFinish').innerText = new Date(t.targetFinishTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         document.getElementById('m10').innerText = calcTime(0.1);
         document.getElementById('m50').innerText = calcTime(0.5);
