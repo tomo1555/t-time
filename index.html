@@ -7,8 +7,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>T-Time Multi</title>
     
-    <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/1BfS_86_S3H4FInF5Y29Z-gD67qA8N65v">
-    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1BfS_86_S3H4FInF5Y29Z-gD67qA8N65v">
+    <link rel="apple-touch-icon" href="icon.png?v=2">
+    <link rel="icon" href="icon.png?v=2">
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap');
@@ -128,6 +128,7 @@
 
 <script>
     var currentTab = 1;
+    // 3つのタブのすべてのデータを永久記憶する構造
     var timers = {
         1: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
         2: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
@@ -139,7 +140,8 @@
             Notification.requestPermission();
         }
 
-        const saved = localStorage.getItem('tTimeMultiData_v8');
+        // 閉じても消えない永久記憶装置のキーを再設定
+        const saved = localStorage.getItem('tTimeMulti_Ultimate_v1');
         if (saved) {
             const parsed = JSON.parse(saved);
             for (let k in timers) {
@@ -148,11 +150,11 @@
         }
         
         switchTab(currentTab);
-        setInterval(uiRenderLoop, 1000); // 1秒間隔の軽量動作
+        setInterval(uiRenderLoop, 1000); // 1秒ごとのタフな同期ループ
     };
 
     function globalSave() {
-        localStorage.setItem('tTimeMultiData_v8', JSON.stringify(timers));
+        localStorage.setItem('tTimeMulti_Ultimate_v1', JSON.stringify(timers));
     }
 
     function switchTab(tabNum) {
@@ -219,7 +221,7 @@
             topReset.style.display = "inline-block";
             
             const now = Date.now();
-            if (now >= t.targetFinishTime) { // 予定時間になったらボタン露出
+            if (now >= t.targetFinishTime) {
                 btn.style.display = "block";
                 btn.innerText = "クリアして次へ";
                 btn.style.background = "#444";
@@ -236,7 +238,7 @@
         for (let i = 1; i <= 3; i++) {
             const t = timers[i];
             if (t.phase === 'FINISHED') {
-                // 【大賛成ロジック】現在時刻が予定終了時間を超えたら、細かい計算を全てスキップして完了にする
+                // 【友一さんの0秒即時完了ロジック】予定時間を過ぎていたら、アプリを閉じていようが開いていようが問答無用で100%完了画面にする
                 if (now >= t.targetFinishTime) {
                     t.currentEstimatedVal = t.totalTarget;
                     document.getElementById(`badge${i}`).style.display = 'none';
@@ -280,7 +282,7 @@
         document.getElementById('m50').innerText = calcTime(0.5);
         document.getElementById('m90').innerText = calcTime(0.9);
         
-        // 【0秒完了指定】予定時間を超えたか、計算値が目標に届いたら、文句なしで100%完了にする
+        // 0秒完了・予定時間超過のダブルガード
         if (now >= t.targetFinishTime || t.currentEstimatedVal >= t.totalTarget) {
             document.getElementById('valRemainingCountdown').innerText = "完了！";
             document.getElementById('pauseBtnInline').style.display = "none";
@@ -294,7 +296,7 @@
             btn.style.color = "#aaa";
         } else {
             const rem = (t.targetFinishTime - now) / 1000;
-            document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSecSmooth(rem);
+            document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSec(rem);
             document.getElementById('pauseBtnInline').style.display = "block";
             document.getElementById('valLiveProgress').innerText = t.currentEstimatedVal.toFixed(2);
             document.getElementById('barFill').style.width = (t.currentEstimatedVal / t.totalTarget * 100) + "%";
@@ -374,7 +376,7 @@
             const titles = { 1: "壱", 2: "弐", 3: "参" };
             new Notification(`T-Time: [${titles[tabNum]}] 完了`, {
                 body: "予定時刻に到達しました。",
-                icon: "https://lh3.googleusercontent.com/d/1BfS_86_S3H4FInF5Y29Z-gD67qA8N65v"
+                icon: "icon.png?v=2"
             });
         }
     }
@@ -384,13 +386,6 @@
         const m = Math.floor(totalSeconds / 60);
         const s = Math.floor(totalSeconds % 60);
         return m + "分" + s + "秒";
-    }
-
-    function formatMinSecSmooth(totalSeconds) {
-        if (totalSeconds <= 0) return "完了！";
-        const m = Math.floor(totalSeconds / 60);
-        const s = Math.floor(totalSeconds % 60);
-        return `${m}分${s}秒`;
     }
 </script>
 </body>
