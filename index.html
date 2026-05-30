@@ -129,7 +129,7 @@
     var timers = {
         1: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
         2: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
-        3: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false }
+        3: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, null: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false }
     };
 
     window.onload = function() {
@@ -137,11 +137,11 @@
             Notification.requestPermission();
         }
 
-        const saved = localStorage.getItem('tTimeMulti_Ultimate_v4');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            for (let k in timers) {
-                if (parsed[k]) timers[k] = parsed[k];
+        // 【大修正】ロッカーを完全に別室(Tab1, Tab2, Tab3個別のキー)にして干渉を完全破壊
+        for (let i = 1; i <= 3; i++) {
+            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v1`);
+            if (saved) {
+                timers[i] = JSON.parse(saved);
             }
         }
         
@@ -149,8 +149,8 @@
         setInterval(uiRenderLoop, 1000);
     };
 
-    function globalSave() {
-        localStorage.setItem('tTimeMulti_Ultimate_v4', JSON.stringify(timers));
+    function saveTabSpecific(tabNum) {
+        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v1`, JSON.stringify(timers[tabNum]));
     }
 
     function switchTab(tabNum) {
@@ -176,7 +176,7 @@
     function changeMode(m) {
         timers[currentTab].mode = m;
         applyModeUI(m);
-        globalSave();
+        saveTabSpecific(currentTab);
     }
 
     function applyModeUI(m) {
@@ -240,11 +240,10 @@
                     if (!t.notified) {
                         sendPushNotification(i);
                         t.notified = true;
-                        globalSave();
+                        saveTabSpecific(i);
                         if(i === currentTab) renderStaticUI();
                     }
                 } else if (t.speedPerMs > 0) {
-                    // 【修正点】他のタブの値を上書きしないよう、それぞれのタブデータ内(t)だけで個別に計算
                     t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
                     if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
                     document.getElementById(`badge${i}`).style.display = 'inline-block';
@@ -254,7 +253,6 @@
             }
         }
         
-        // 画面の更新は「今開いているタブ」だけを対象にする
         const activeTimer = timers[currentTab];
         if (activeTimer.phase === 'FINISHED') {
             updateFinishedDisplaySmooth(activeTimer, now);
@@ -313,7 +311,7 @@
 
             t.startTime = Date.now();
             t.phase = 'MEASURING';
-            globalSave();
+            saveTabSpecific(currentTab);
             renderStaticUI();
         } else if (t.phase === 'MEASURING') {
             t.confirmTime = Date.now();
@@ -325,7 +323,7 @@
             t.targetFinishTime = t.confirmTime + ((t.totalTarget - t.eVal) / t.speedPerMs);
             t.phase = 'FINISHED';
             t.notified = false;
-            globalSave();
+            saveTabSpecific(currentTab);
             renderStaticUI();
         } else if (t.phase === 'FINISHED') {
             softReset();
@@ -338,7 +336,7 @@
         document.getElementById('inputEnd').value = 4;
         document.getElementById('inputTotal').value = 100;
         document.getElementById('resultArea').style.display = "none";
-        globalSave();
+        saveTabSpecific(currentTab);
         renderStaticUI();
     }
 
@@ -346,12 +344,12 @@
         if (confirm("すべてのタブのデータを完全に初期化します。よろしいですか？")) {
             for (let i = 1; i <= 3; i++) {
                 timers[i] = { mode: timers[i].mode, phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
+                saveTabSpecific(i);
             }
             document.getElementById('inputStart').value = 3;
             document.getElementById('inputEnd').value = 4;
             document.getElementById('inputTotal').value = 100;
             document.getElementById('resultArea').style.display = "none";
-            globalSave();
             renderStaticUI();
         }
     }
@@ -362,7 +360,7 @@
         t.sVal = roundedVal;
         t.eVal = roundedVal + 1;
         t.phase = 'READY';
-        globalSave();
+        saveTabSpecific(currentTab);
         
         document.getElementById('inputStart').value = t.sVal;
         document.getElementById('inputEnd').value = t.eVal;
