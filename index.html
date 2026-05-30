@@ -53,7 +53,10 @@
         .live-value { font-size: 1.8rem; font-weight: bold; color: #fff; }
         
         .progress-bar-bg { width: 100%; height: 8px; background: #333; border-radius: 4px; margin-top: 8px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.1s linear; }
+        /* 【重要】初期状態はtransitionなし。JSで滑らかさを制御 */
+        .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; }
+        .progress-bar-fill.smooth { transition: width 0.1s linear; }
+        
         .milestones { display: flex; justify-content: space-around; margin: 15px 0; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 15px; }
         .m-item { font-size: 0.8rem; color: #ccc; }
         .m-item b { display: block; color: var(--primary); font-size: 0.95rem; }
@@ -138,7 +141,7 @@
         }
 
         for (let i = 1; i <= 3; i++) {
-            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v5`);
+            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v6`);
             if (saved) {
                 timers[i] = JSON.parse(saved);
             }
@@ -149,7 +152,7 @@
     };
 
     function saveTabSpecific(tabNum) {
-        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v5`, JSON.stringify(timers[tabNum]));
+        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v6`, JSON.stringify(timers[tabNum]));
     }
 
     function switchTab(tabNum) {
@@ -163,10 +166,9 @@
         document.getElementById('inputEnd').value = t.eVal;
         document.getElementById('inputTotal').value = t.totalTarget;
 
-        // 【今回の重要改良】タブを切り替えたその瞬間のリアルタイム現在時刻を取得
         const now = Date.now();
         
-        // 切り替え先のタブが計測中（FINISHED）であれば、その瞬間の最新進捗と秒数を強制計算して即座に画面へ反映（固まりを防止）
+        // 切り替え先のタブのデータを現在のリアルタイム時間で一発超高速再計算
         if (t.phase === 'FINISHED') {
             if (t.targetFinishTime && now < t.targetFinishTime && t.speedPerMs > 0) {
                 t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
@@ -175,10 +177,19 @@
             }
         }
 
+        // 【最強のChrome対策】切り替えた「その瞬間」だけアニメーション用クラス（smooth）を剥ぎ取り、フリーズを物理的に防ぐ
+        const bar = document.getElementById('barFill');
+        bar.classList.remove('smooth');
+
         renderStaticUI();
         if (t.phase === 'FINISHED') {
             updateFinishedDisplaySmooth(t, now);
         }
+
+        // 描画が強制反映された直後（20ミリ秒後）に、滑らかに動くクラスを再付与する
+        setTimeout(() => {
+            bar.classList.add('smooth');
+        }, 20);
     }
 
     function changeMode(m) {
@@ -239,13 +250,13 @@
     function uiRenderLoop() {
         const now = Date.now();
         
-        // バックグラウンドでの進捗度計算と赤丸（バッジ）制御
+        // 裏側でのデータ計算とバッジ（赤丸）の判定のみを完全隔離して実行
         for (let i = 1; i <= 3; i++) {
             const t = timers[i];
             if (t.phase === 'FINISHED') {
                 if (t.targetFinishTime && now >= t.targetFinishTime) {
                     t.currentEstimatedVal = t.totalTarget;
-                    document.getElementById(`badge${i}`).style.display = 'none'; // 終了したら赤丸を消去
+                    document.getElementById(`badge${i}`).style.display = 'none'; 
                     if (!t.notified) {
                         sendPushNotification(i);
                         t.notified = true;
@@ -255,14 +266,14 @@
                     t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
                     if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
                     
-                    document.getElementById(`badge${i}`).style.display = 'inline-block'; // 稼働中は赤丸を表示
+                    document.getElementById(`badge${i}`).style.display = 'inline-block'; 
                 }
             } else {
                 document.getElementById(`badge${i}`).style.display = 'none';
             }
         }
         
-        // メイン画面の1秒ごとの更新は現在開いているタブのみに限定実行
+        // 表側の画面更新は現在のアクティブタブのみ
         renderStaticUI(); 
         const activeTimer = timers[currentTab];
         if (activeTimer.phase === 'FINISHED') {
