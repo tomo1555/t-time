@@ -139,7 +139,7 @@
             Notification.requestPermission();
         }
 
-        const saved = localStorage.getItem('tTimeMultiData_v5');
+        const saved = localStorage.getItem('tTimeMultiData_v6');
         if (saved) {
             const parsed = JSON.parse(saved);
             for (let k in timers) {
@@ -148,12 +148,11 @@
         }
         
         switchTab(currentTab);
-        // Chromeのバックグラウンドフリーズ対策：毎秒、現在時刻を基に「絶対時間」から完全逆算するループ
         setInterval(uiRenderLoop, 100);
     };
 
     function globalSave() {
-        localStorage.setItem('tTimeMultiData_v5', JSON.stringify(timers));
+        localStorage.setItem('tTimeMultiData_v6', JSON.stringify(timers));
     }
 
     function switchTab(tabNum) {
@@ -219,7 +218,7 @@
             topReset.style.display = "inline-block";
             
             const now = Date.now();
-            if (t.targetFinishTime - now <= 0) {
+            if (t.targetFinishTime - now <= 500) { // 誤差を考慮して0.5秒未満なら完了扱い
                 btn.style.display = "block";
                 btn.innerText = "クリアして次へ";
                 btn.style.background = "#444";
@@ -230,7 +229,6 @@
         }
     }
 
-    /* 【対Chrome仕様】裏でタイマーが止まっても、表に出た瞬間に現在時刻(Date.now)から強制逆算する頑丈なループ */
     function uiRenderLoop() {
         const now = Date.now();
         
@@ -239,14 +237,16 @@
             if (t.phase === 'FINISHED') {
                 const rem = (t.targetFinishTime - now) / 1000;
                 
-                // リアルタイム進捗を「現在の絶対時間」から完全逆算（Chromeがどれだけサボってもズレない）
+                // 現在値の計算
                 t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
                 
-                if (rem <= 0 || t.currentEstimatedVal >= t.totalTarget) {
+                /* 【絶対着地ロジック】目標に達するか、残り時間が0.2秒以下なら強制的に「100%完了状態」にする */
+                if (rem <= 0.2 || t.currentEstimatedVal >= t.totalTarget) {
                     t.currentEstimatedVal = t.totalTarget;
                 }
 
-                if (rem > 0) {
+                // 完了フラグ判定の強化（Chromeのミリ秒の端数バグを吸収するため、残り0.2秒以下で完了とみなす）
+                if (rem > 0.2 && t.currentEstimatedVal < t.totalTarget) {
                     document.getElementById(`badge${i}`).style.display = 'inline-block';
                 } else {
                     document.getElementById(`badge${i}`).style.display = 'none';
@@ -273,6 +273,12 @@
 
     function updateFinishedDisplaySmooth(t, now) {
         const rem = (t.targetFinishTime - now) / 1000;
+        
+        // 安全ガード：万が一計算速度が0以下（エラー）になった場合は表示を維持してフリーズを防ぐ
+        if (!t.speedPerMs || t.speedPerMs <= 0) {
+            return; 
+        }
+        
         const timePerUnitMs = 1 / t.speedPerMs;
 
         document.getElementById('valPerMin').innerText = (t.speedPerMs * 60000).toFixed(1) + (t.mode==='pct'?'%':'個');
@@ -290,7 +296,8 @@
         document.getElementById('m50').innerText = calcTime(0.5);
         document.getElementById('m90').innerText = calcTime(0.9);
         
-        if (rem <= 0) {
+        /* 【Chrome誤差対策】残り0.2秒以下になったら、四捨五入のバグを無視して100%表示へ固定 */
+        if (rem <= 0.2 || t.currentEstimatedVal >= t.totalTarget) {
             document.getElementById('valRemainingCountdown').innerText = "完了！";
             document.getElementById('pauseBtnInline').style.display = "none";
             document.getElementById('valLiveProgress').innerText = t.totalTarget.toFixed(t.mode==='pct'?2:0);
@@ -395,14 +402,14 @@
     }
 
     function formatMinSec(totalSeconds) {
-        if (totalSeconds <= 0) return "完了！";
+        if (totalSeconds <= 0.2) return "完了！";
         const m = Math.floor(totalSeconds / 60);
         const s = Math.floor(totalSeconds % 60);
         return m + "分" + s + "秒";
     }
 
     function formatMinSecSmooth(totalSeconds) {
-        if (totalSeconds <= 0) return "完了！";
+        if (totalSeconds <= 0.2) return "完了！";
         const m = Math.floor(totalSeconds / 60);
         const s = Math.floor(totalSeconds % 60);
         const ms = Math.floor((totalSeconds % 1) * 10);
