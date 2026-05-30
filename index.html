@@ -128,7 +128,6 @@
 
 <script>
     var currentTab = 1;
-    // 3つのタブのすべてのデータを永久記憶する構造
     var timers = {
         1: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
         2: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
@@ -140,8 +139,7 @@
             Notification.requestPermission();
         }
 
-        // 閉じても消えない永久記憶装置のキーを再設定
-        const saved = localStorage.getItem('tTimeMulti_Ultimate_v1');
+        const saved = localStorage.getItem('tTimeMulti_Ultimate_v2');
         if (saved) {
             const parsed = JSON.parse(saved);
             for (let k in timers) {
@@ -150,11 +148,11 @@
         }
         
         switchTab(currentTab);
-        setInterval(uiRenderLoop, 1000); // 1秒ごとのタフな同期ループ
+        setInterval(uiRenderLoop, 1000);
     };
 
     function globalSave() {
-        localStorage.setItem('tTimeMulti_Ultimate_v1', JSON.stringify(timers));
+        localStorage.setItem('tTimeMulti_Ultimate_v2', JSON.stringify(timers));
     }
 
     function switchTab(tabNum) {
@@ -202,18 +200,18 @@
         if (t.phase === 'READY') {
             result.style.display = "none";
             info.innerText = "";
-            btn.style.display = "block";
-            btn.innerText = "ここから測る";
             btn.style.background = "var(--primary)";
             btn.style.color = "#1a1a1a";
+            btn.style.display = "block";
+            btn.innerText = "ここから測る";
             topReset.style.display = "none";
         } else if (t.phase === 'MEASURING') {
             result.style.display = "none";
             info.innerHTML = `<div style="font-size: 1.3rem; color:#aaa; font-weight:bold; margin-bottom:10px;">計測中...</div>`;
-            btn.style.display = "block";
             btn.innerText = `${t.eVal}${t.mode==='pct'?'%':'個'} で確定`;
             btn.style.background = "#555"; 
             btn.style.color = "#fff";
+            btn.style.display = "block";
             topReset.style.display = "inline-block";
         } else if (t.phase === 'FINISHED') {
             result.style.display = "block";
@@ -238,7 +236,6 @@
         for (let i = 1; i <= 3; i++) {
             const t = timers[i];
             if (t.phase === 'FINISHED') {
-                // 【友一さんの0秒即時完了ロジック】予定時間を過ぎていたら、アプリを閉じていようが開いていようが問答無用で100%完了画面にする
                 if (now >= t.targetFinishTime) {
                     t.currentEstimatedVal = t.totalTarget;
                     document.getElementById(`badge${i}`).style.display = 'none';
@@ -250,6 +247,7 @@
                     }
                 } else {
                     t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
+                    if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
                     document.getElementById(`badge${i}`).style.display = 'inline-block';
                 }
             } else {
@@ -282,8 +280,11 @@
         document.getElementById('m50').innerText = calcTime(0.5);
         document.getElementById('m90').innerText = calcTime(0.9);
         
-        // 0秒完了・予定時間超過のダブルガード
-        if (now >= t.targetFinishTime || t.currentEstimatedVal >= t.totalTarget) {
+        const rem = (t.targetFinishTime - now) / 1000;
+        const countdownText = formatMinSec(rem);
+        document.getElementById('valRemainingCountdown').innerText = (countdownText === "完了！") ? "完了！" : "あと " + countdownText;
+        
+        if (countdownText === "完了！" || now >= t.targetFinishTime || t.currentEstimatedVal >= t.totalTarget) {
             document.getElementById('valRemainingCountdown').innerText = "完了！";
             document.getElementById('pauseBtnInline').style.display = "none";
             document.getElementById('valLiveProgress').innerText = t.totalTarget.toFixed(t.mode==='pct'?2:0);
@@ -295,8 +296,6 @@
             btn.style.background = "#444";
             btn.style.color = "#aaa";
         } else {
-            const rem = (t.targetFinishTime - now) / 1000;
-            document.getElementById('valRemainingCountdown').innerText = "あと " + formatMinSec(rem);
             document.getElementById('pauseBtnInline').style.display = "block";
             document.getElementById('valLiveProgress').innerText = t.currentEstimatedVal.toFixed(2);
             document.getElementById('barFill').style.width = (t.currentEstimatedVal / t.totalTarget * 100) + "%";
@@ -381,8 +380,9 @@
         }
     }
 
+    // 【完全防御】1秒未満、あるいはマイナス秒数になったら、例外なく「完了！」を即座に叩き返す
     function formatMinSec(totalSeconds) {
-        if (totalSeconds <= 0) return "完了！";
+        if (totalSeconds < 1.0) return "完了！";
         const m = Math.floor(totalSeconds / 60);
         const s = Math.floor(totalSeconds % 60);
         return m + "分" + s + "秒";
