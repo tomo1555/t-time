@@ -40,7 +40,6 @@
         
         .main-btn { background: var(--primary); color: #1a1a1a; border: none; width: 100%; padding: 18px; border-radius: 40px; font-size: 1.5rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
         
-        /* 全リセット用のシブいボタンのスタイル */
         .all-reset-area { margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
         .all-reset-btn { background: transparent; border: 1px solid #444; color: #666; width: 80%; padding: 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
         .all-reset-btn:active { background: rgba(230, 57, 70, 0.1); border-color: var(--accent); color: var(--accent); }
@@ -339,16 +338,20 @@
         }
     }
 
+    /* 【変更箇所】リセット処理が走ったら、即座に結果表示エリアを非表示にする */
     function softReset() {
         timers[currentTab] = { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
         document.getElementById('inputStart').value = 3;
         document.getElementById('inputEnd').value = 4;
         document.getElementById('inputTotal').value = 100;
+        
+        // 完了表示エリアを即座に隠す
+        document.getElementById('resultArea').style.display = "none";
+        
         globalSave();
         renderStaticUI();
     }
 
-    /* 【追加】全タブを一発でREADY状態に戻す関数（安全ストッパー付き） */
     function globalAllReset() {
         if (confirm("すべてのタブ（壱・弐・参）のデータを完全に初期化します。よろしいですか？")) {
             for (let i = 1; i <= 3; i++) {
@@ -357,6 +360,10 @@
             document.getElementById('inputStart').value = 3;
             document.getElementById('inputEnd').value = 4;
             document.getElementById('inputTotal').value = 100;
+            
+            // 完了表示エリアを即座に隠す
+            document.getElementById('resultArea').style.display = "none";
+            
             globalSave();
             renderStaticUI();
         }
