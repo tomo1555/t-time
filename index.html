@@ -140,7 +140,7 @@
         }
 
         for (let i = 1; i <= 3; i++) {
-            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v9`);
+            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v13`);
             if (saved) {
                 timers[i] = JSON.parse(saved);
             }
@@ -151,7 +151,7 @@
     };
 
     function saveTabSpecific(tabNum) {
-        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v9`, JSON.stringify(timers[tabNum]));
+        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v13`, JSON.stringify(timers[tabNum]));
     }
 
     function switchTab(tabNum) {
@@ -204,7 +204,6 @@
     }
 
     function renderStaticUI() {
-        // 現在アクティブなタブ「だけ」の状態を見てボタンやシャッターの開閉を独立判断する
         const t = timers[currentTab];
         const btn = document.getElementById('mainBtn');
         const info = document.getElementById('info-area');
@@ -247,38 +246,53 @@
     function uiRenderLoop() {
         const now = Date.now();
         
-        // 【改善1】ループ内は「純粋な裏データ計算」と「自分自身のバッジ制御」のみに完全限定。画面全体の非表示やフェーズ書き換えなど余計なことは一切しない。
+        // 【最重要・エラー遮断バリア】
+        // 他のタブのバッジやデータ処理で万が一エラーが起きても、絶対に全体時計を殺さずに握りつぶす
         for (let i = 1; i <= 3; i++) {
-            const t = timers[i];
-            if (t.targetFinishTime) {
-                if (now >= t.targetFinishTime) {
-                    t.currentEstimatedVal = t.totalTarget;
-                    document.getElementById(`badge${i}`).style.display = 'none'; 
-                    if (!t.notified) {
-                        sendPushNotification(i);
-                        t.notified = true;
-                        saveTabSpecific(i);
+            try {
+                const t = timers[i];
+                if (t.targetFinishTime) {
+                    if (now >= t.targetFinishTime) {
+                        t.currentEstimatedVal = t.totalTarget;
+                        const elBadge = document.getElementById(`badge${i}`);
+                        if (elBadge) elBadge.style.display = 'none'; 
+                        if (!t.notified) {
+                            sendPushNotification(i);
+                            t.notified = true;
+                            saveTabSpecific(i);
+                        }
+                    } else if (t.speedPerMs > 0) {
+                        t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
+                        if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
+                        
+                        const elBadge = document.getElementById(`badge${i}`);
+                        if (elBadge) {
+                            if (t.phase === 'FINISHED') {
+                                elBadge.style.display = 'inline-block'; 
+                            } else {
+                                elBadge.style.display = 'none';
+                            }
+                        }
                     }
-                } else if (t.speedPerMs > 0) {
-                    t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
-                    if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
-                    
-                    if (t.phase === 'FINISHED') {
-                        document.getElementById(`badge${i}`).style.display = 'inline-block'; 
-                    } else {
-                        document.getElementById(`badge${i}`).style.display = 'none';
-                    }
+                } else {
+                    const elBadge = document.getElementById(`badge${i}`);
+                    if (elBadge) elBadge.style.display = 'none';
                 }
-            } else {
-                document.getElementById(`badge${i}`).style.display = 'none';
+            } catch (e) {
+                // 裏ループのエラーを完全に無視して次の処理へ進む
+                console.error("裏処理エラー検知（バリアが防御しました）:", e);
             }
         }
         
-        // 【改善2】ループから完全に外に出した状態で、いま開いているアクティブタブだけを処理。他タブの完了に巻き込まれる余地を物理的にゼロにする。
-        renderStaticUI(); 
-        const activeTimer = timers[currentTab];
-        if (activeTimer.targetFinishTime) {
-            updateFinishedDisplaySmooth(activeTimer, now);
+        // 現在開いているアクティブタブの画面描写（何が何でも100%確実に1秒ごとに強制実行）
+        try {
+            renderStaticUI(); 
+            const activeTimer = timers[currentTab];
+            if (activeTimer.targetFinishTime) {
+                updateFinishedDisplaySmooth(activeTimer, now);
+            }
+        } catch (e) {
+            console.error("メイン描画エラー:", e);
         }
     }
 
