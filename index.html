@@ -2,427 +2,361 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>T-Time Multi</title>
-    
-    <link rel="apple-touch-icon" href="icon.png?v=2">
-    <link rel="icon" href="icon.png?v=2">
-    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap');
         :root { 
-            --bg: #1a1a1a; --card: #262626; --primary: #c9a063; --accent: #e63946; --text: #f0f0f0;
-            --font-gyosho: 'Klee One', 'YuMincho', 'Yu Mincho', serif;
+            --bg: #1a1a1a; --card: #262626; --primary: #c9a063; --accent: #e63946; --success: #2a9d8f; --text: #f0f0f0;
+            --font-gyosho: 'Klee One', serif;
         }
-        body { font-family: var(--font-gyosho); background: var(--bg); color: var(--text); padding: env(safe-area-inset-top) 5px 20px 5px; margin: 0; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 500px; background: var(--card); border-radius: 30px; padding: 15px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid rgba(201, 160, 99, 0.2); text-align: center; }
+        body { font-family: var(--font-gyosho); background: var(--bg); color: var(--text); padding: 20px 10px; margin: 0; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 500px; background: var(--card); border-radius: 30px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid rgba(201, 160, 99, 0.2); text-align: center; display: flex; flex-direction: column; }
         h1 { font-size: 2.5rem; color: var(--primary); margin: 0; font-weight: 600; letter-spacing: 4px; }
         
-        .subtitle-area { margin-bottom: 15px; font-size: 1.0rem; color:#aaa; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 32px; }
+        /* タブ（壱・弐・参） */
+        .multi-tabs { display: flex; gap: 8px; margin: 20px 0 10px 0; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px; }
+        .tab-btn { flex: 1; padding: 12px 5px; font-size: 1.3rem; border: none; border-radius: 8px; background: transparent; color: #777; cursor: pointer; font-family: var(--font-gyosho); font-weight: bold; position: relative; }
+        .tab-btn.tab-active { background: #333; color: var(--primary); border: 1px solid rgba(201, 160, 99, 0.3); }
+        .tab-badge { width: 10px; height: 10px; border-radius: 50%; position: absolute; top: 5px; right: 5px; display: none; }
         
-        .top-reset-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 2px 10px; border-radius: 6px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.8rem; font-weight: bold; -webkit-tap-highlight-color: transparent; display: none; }
-
-        .multi-tabs { display: flex; gap: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px; }
-        .tab-btn { flex: 1; padding: 12px 5px; font-size: 1.3rem; border: none; border-radius: 8px; background: transparent; color: #777; cursor: pointer; font-family: var(--font-gyosho); transition: all 0.2s; -webkit-tap-highlight-color: transparent; font-weight: bold; position: relative; }
-        .tab-btn.tab-active { background: #333; color: var(--primary); font-weight: bold; border: 1px solid rgba(201, 160, 99, 0.3); }
-        .tab-badge { display: inline-block; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; margin-left: 4px; display: none; vertical-align: middle; }
-
-        .mode-switch { display: flex; gap: 8px; margin-bottom: 15px; }
-        .mode-btn { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid #444; background: #262626; color: white; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; }
-        .mode-active { background: var(--primary); color: #1a1a1a; border-color: var(--primary); font-weight: bold; }
-        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        /* モード切り替え（％・個数タブ形式） */
+        .mode-switch { display: flex; gap: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px; }
+        .mode-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: transparent; color: #777; cursor: pointer; font-family: var(--font-gyosho); font-size: 1.3rem; font-weight: bold; transition: all 0.2s; }
+        .mode-active { background: #333; color: var(--primary); border: 1px solid rgba(201, 160, 99, 0.3); }
+        
+        /* 入力・ボタン */
+        .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
         .input-group { flex: 1; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 15px; text-align: left; }
         label { display: block; font-size: 0.8rem; color: var(--primary); }
         input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #444; color: white; font-size: 1.5rem; outline: none; font-family: var(--font-gyosho); }
         
-        .main-btn { background: var(--primary); color: #1a1a1a; border: none; width: 100%; padding: 18px; border-radius: 40px; font-size: 1.5rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
+        .main-btn { background: var(--primary); color: #1a1a1a; border: none; width: 100%; padding: 18px; border-radius: 40px; font-size: 1.5rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); margin-top: 10px; }
         
-        .all-reset-area { margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
-        .all-reset-btn { background: transparent; border: 1px solid #444; color: #666; width: 80%; padding: 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
+        /* 結果表示 */
+        .result { margin-top: 20px; }
+        .finish-box { background: rgba(230, 57, 70, 0.05); padding: 20px 15px; border-radius: 20px; position: relative; }
+        
+        .time-label { font-size: 0.85rem; color: var(--primary); margin-bottom: 5px; }
+        .time-val { font-size: 2.2rem; font-weight: bold; color: var(--primary); margin-bottom: 5px; }
+        
+        /* 最短完了予測タイトルと一時停止再設定ボタンを完全に同じ行にするスタイル */
+        .theory-header { position: relative; display: flex; justify-content: center; align-items: center; min-height: 32px; margin-bottom: 5px; width: 100%; }
+        .theory-title-wrapper { font-size: 0.85rem; color: var(--primary); font-weight: normal; text-align: center; }
+        
+        /* 一時停止再設定ボタン（右端に配置） */
+        .pause-reset-btn { position: absolute; right: 0; background: rgba(201, 160, 99, 0.15); color: var(--primary); border: 1px solid rgba(201, 160, 99, 0.4); padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; cursor: pointer; font-family: var(--font-gyosho); transition: all 0.2s; white-space: nowrap; }
+        .pause-reset-btn:active { background: var(--primary); color: #1a1a1a; }
 
-        .result { margin-top: 0; display: none; }
-        .finish-focus { background: rgba(230, 57, 70, 0.05); padding: 15px 10px; border-radius: 20px; margin-top: 15px; margin-bottom: 10px; position: relative; }
-        .time-display-large { font-size: 3.2rem; color: var(--accent); font-weight: bold; line-height: 1; margin-bottom: 5px; }
-        .countdown-row { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 8px 0; }
-        .countdown-display { font-size: 1.6rem; color: var(--text); font-weight: bold; }
-        .pause-btn-inline { background: rgba(201, 160, 99, 0.1); border: 1px solid var(--primary); color: var(--primary); padding: 4px 12px; border-radius: 8px; cursor: pointer; font-family: var(--font-gyosho); font-size: 0.75rem; text-align: center; }
-        .live-progress-container { margin: 12px 0; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .live-row { display: flex; justify-content: center; align-items: center; gap: 15px; }
-        .live-value { font-size: 1.8rem; font-weight: bold; color: #fff; }
+        /* プログレスバー・時間・進捗率のエリア */
+        .progress-container { margin: 15px 0 5px 0; }
         
-        .progress-bar-bg { width: 100%; height: 8px; background: #333; border-radius: 4px; margin-top: 8px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; }
-        .progress-bar-fill.smooth { transition: width 0.1s linear; }
+        /* 「あと 〜」の文字サイズ */
+        .countdown-text { font-size: 1.4rem; font-weight: bold; color: var(--text); }
         
-        .milestones { display: flex; justify-content: space-around; margin: 15px 0; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 15px; }
-        .m-item { font-size: 0.8rem; color: #ccc; }
-        .m-item b { display: block; color: var(--primary); font-size: 0.95rem; }
-        .browser-warning { background: rgba(201, 160, 99, 0.1); border-radius: 15px; padding: 10px; display: flex; justify-content: space-around; gap: 5px; margin: 15px 0; }
-        .analysis-item { font-size: 0.75rem; color: #ccc; flex: 1; }
-        .analysis-item b { display: block; color: var(--primary); font-size: 0.95rem; margin-top: 2px; }
+        .bar-bg { width: 100%; height: 12px; background: #333; border-radius: 6px; overflow: hidden; margin: 10px 0; }
+        .bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+        
+        /* 「進捗: 〜%」の文字サイズ */
+        .progress-percent { font-size: 1.2rem; font-weight: bold; color: var(--text); }
+        
+        /* 表エリアの文字サイズ拡大 */
+        .milestones { display: flex; justify-content: space-around; margin: 20px 0; background: rgba(255,255,255,0.05); padding: 12px 5px; border-radius: 15px; font-size: 1.05rem; }
+        .milestones b { font-size: 1.15rem; }
+        
+        .analysis-area { display: flex; justify-content: space-around; margin: 15px 0; font-size: 1.05rem; color: #aaa; }
+        .analysis-area b { font-size: 1.15rem; }
+
+        /* 全てクリアエリア */
+        .clear-all-wrap { margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
+        .clear-all-btn { background: var(--accent); color: white; border: none; width: 100%; padding: 14px; border-radius: 30px; font-size: 1.1rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); transition: background 0.2s; box-shadow: 0 4px 15px rgba(230, 57, 70, 0.2); }
+        .clear-all-btn:active { background: #b82d37; }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>T-Time</h1>
-    <div class="subtitle-area">
-        <span>完了時間を予測します</span>
-        <button id="topResetBtn" class="top-reset-btn" onclick="softReset()">リセット</button>
-    </div>
-
     <div class="multi-tabs">
-        <button id="tab1" class="tab-btn tab-active" onclick="switchTab(1)">壱<span id="badge1" class="tab-badge"></span></button>
-        <button id="tab2" class="tab-btn" onclick="switchTab(2)">弐<span id="badge2" class="tab-badge"></span></button>
-        <button id="tab3" class="tab-btn" onclick="switchTab(3)">参<span id="badge3" class="tab-badge"></span></button>
+        <button id="tab1" class="tab-btn tab-active" onclick="switchTab(1)">壱<span id="b1" class="tab-badge"></span></button>
+        <button id="tab2" class="tab-btn" onclick="switchTab(2)">弐<span id="b2" class="tab-badge"></span></button>
+        <button id="tab3" class="tab-btn" onclick="switchTab(3)">参<span id="b3" class="tab-badge"></span></button>
     </div>
 
-    <div id="inputSection">
-        <div class="mode-switch">
-            <button id="modePct" class="mode-btn mode-active" onclick="changeMode('pct')">％</button>
-            <button id="modeNum" class="mode-btn" onclick="changeMode('num')">個数</button>
-        </div>
-        <div class="input-row">
-            <div class="input-group"><label id="labelStart">現在の値</label><input type="number" id="inputStart" value="3"></div>
-            <div class="input-group"><label id="labelEnd">次に押す値</label><input type="number" id="inputEnd" value="4"></div>
-        </div>
-        <div id="totalGroup" class="input-group" style="display:none; margin-bottom:10px;"><label>全体の合計</label><input type="number" id="inputTotal" value="100"></div>
+    <div class="mode-switch">
+        <button id="modePct" class="mode-btn mode-active" onclick="changeMode('pct')">％</button>
+        <button id="modeNum" class="mode-btn" onclick="changeMode('num')">個数</button>
     </div>
-    <div id="info-area" style="min-height: 1rem; margin-top:5px;"></div>
-    
-    <button id="mainBtn" class="main-btn" onclick="handleClick()">ここから測る</button>
-    
-    <div id="resultArea" class="result">
-        <div class="finish-focus">
-            <div style="font-size: 0.9rem; color: var(--primary);">完了予定時刻</div>
-            <div id="valFinish" class="time-display-large">--:--</div>
-            <div class="countdown-row">
-                <button id="pauseBtnInline" class="pause-btn-inline" onclick="pauseAndEdit()">一時停止<br>再設定</button>
-                <div id="valRemainingCountdown" class="countdown-display">あと --分--秒</div>
+
+    <div class="input-row">
+        <div class="input-group"><label>現在の値</label><input type="number" id="sVal" value="3"></div>
+        <div class="input-group"><label>次に押す値</label><input type="number" id="eVal" value="4"></div>
+    </div>
+    <div id="numInputArea" class="input-group" style="display:none; margin-bottom:15px;">
+        <label>合計目標値</label><input type="number" id="totalVal" value="100">
+    </div>
+
+    <button id="mainBtn" class="main-btn" onclick="handle()">ここから測る</button>
+
+    <div id="resultArea" class="result" style="display:none;">
+        <div class="finish-box">
+            <div class="theory-header">
+                <div class="theory-title-wrapper">最短完了予測</div>
+                <button id="pauseResetBtn" class="pause-reset-btn" onclick="pauseAndReset()">一時停止再設定</button>
             </div>
-            <div class="live-progress-container">
-                <div style="font-size: 0.8rem; color: var(--primary); margin-bottom: 4px;">現在の推定進捗</div>
-                <div class="live-row">
-                    <div class="live-value"><span id="valLiveProgress">--</span><span id="unitLive">％</span></div>
-                </div>
-                <div class="progress-bar-bg"><div id="barFill" class="progress-bar-fill"></div></div>
+            
+            <div id="theoryTime" class="time-val" style="color:var(--primary);">--/-- --:--</div>
+            
+            <div class="time-label" style="margin-top:10px;">推定完了目処</div>
+            <div id="practiceTime" class="time-val">--/-- --:--</div>
+            
+            <div class="progress-container">
+                <div id="countdown" class="countdown-text">あと --分--秒</div>
+                <div class="bar-bg"><div id="bar" class="bar-fill"></div></div>
+                <div id="progressText" class="progress-percent">進捗: 0%</div>
             </div>
         </div>
+        
         <div class="milestones">
-            <div class="m-item">10%<b id="m10">--:--</b></div>
-            <div class="m-item">50%<b id="m50">--:--</b></div>
-            <div class="m-item">90%<b id="m90">--:--</b></div>
+            <div>10%<br><b id="m10" style="color:var(--primary);">--:--</b></div>
+            <div>50%<br><b id="m50" style="color:var(--primary);">--:--</b></div>
+            <div>90%<br><b id="m90" style="color:var(--primary);">--:--</b></div>
         </div>
-        <div class="browser-warning">
-            <div class="analysis-item">1分進捗<b><span id="valPerMin">--</span></b></div>
-            <div class="analysis-item"><span id="lblPerUnit">1単位</span><b><span id="valPerUnit">--</span></b></div>
-            <div class="analysis-item"><span id="lblFull">全体</span><b><span id="valFullDuration">--</span></b></div>
+        <div class="analysis-area">
+            <div>1分進捗<br><b id="vPerMin" style="color:var(--primary);">--</b></div>
+            <div>1単位<br><b id="vPerUnit" style="color:var(--primary);">--</b></div>
+            <div>全体<br><b id="vFull" style="color:var(--primary);">--</b></div>
         </div>
     </div>
 
-    <div class="all-reset-area">
-        <button class="all-reset-btn" onclick="globalAllReset()">すべてのタブを初期化</button>
+    <div class="clear-all-wrap">
+        <button id="clearAllBtn" class="clear-all-btn" onclick="clearAll()">全てクリア（全タブ初期化）</button>
     </div>
 </div>
 
 <script>
-    var currentTab = 1;
-    var timers = {
-        1: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
-        2: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false },
-        3: { mode: 'pct', phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false }
-    };
-
-    window.onload = function() {
-        if ("Notification" in window) {
-            Notification.requestPermission();
-        }
-
-        for (let i = 1; i <= 3; i++) {
-            const saved = localStorage.getItem(`tTime_Isolated_Tab${i}_v13`);
-            if (saved) {
-                timers[i] = JSON.parse(saved);
-            }
-        }
-        
-        switchTab(currentTab);
-        setInterval(uiRenderLoop, 1000);
-    };
-
-    function saveTabSpecific(tabNum) {
-        localStorage.setItem(`tTime_Isolated_Tab${tabNum}_v13`, JSON.stringify(timers[tabNum]));
-    }
-
-    function switchTab(tabNum) {
-        document.getElementById(`tab${currentTab}`).classList.remove('tab-active');
-        currentTab = tabNum;
-        document.getElementById(`tab${currentTab}`).classList.add('tab-active');
-
-        const t = timers[currentTab];
-        applyModeUI(t.mode);
-        document.getElementById('inputStart').value = t.sVal;
-        document.getElementById('inputEnd').value = t.eVal;
-        document.getElementById('inputTotal').value = t.totalTarget;
-
-        const now = Date.now();
-        
-        if (t.targetFinishTime) {
-            if (now < t.targetFinishTime && t.speedPerMs > 0) {
-                t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
-            } else {
-                t.currentEstimatedVal = t.totalTarget;
-            }
-        }
-
-        const bar = document.getElementById('barFill');
-        bar.classList.remove('smooth');
-
-        renderStaticUI();
-        if (t.targetFinishTime) {
-            updateFinishedDisplaySmooth(t, now);
-        }
-
-        setTimeout(() => {
-            bar.classList.add('smooth');
-        }, 20);
-    }
-
-    function changeMode(m) {
-        timers[currentTab].mode = m;
-        applyModeUI(m);
-        saveTabSpecific(currentTab);
-    }
-
-    function applyModeUI(m) {
-        document.getElementById('modePct').className = m === 'pct' ? 'mode-btn mode-active' : 'mode-btn';
-        document.getElementById('modeNum').className = m === 'num' ? 'mode-btn mode-active' : 'mode-btn';
-        document.getElementById('totalGroup').style.display = m === 'num' ? 'block' : 'none';
-        document.getElementById('unitLive').innerText = m === 'pct' ? '％' : '個';
-        document.getElementById('lblPerUnit').innerText = m === 'pct' ? '1％' : '1個';
-        document.getElementById('lblFull').innerText = m === 'pct' ? '100％' : '合計';
-    }
-
-    function renderStaticUI() {
-        const t = timers[currentTab];
-        const btn = document.getElementById('mainBtn');
-        const info = document.getElementById('info-area');
-        const result = document.getElementById('resultArea');
-        const topReset = document.getElementById('topResetBtn');
-
-        if (t.phase === 'READY') {
-            result.style.display = "none";
-            info.innerText = "";
-            btn.style.background = "var(--primary)";
-            btn.style.color = "#1a1a1a";
-            btn.style.display = "block";
-            btn.innerText = "ここから測る";
-            topReset.style.display = "none";
-        } else if (t.phase === 'MEASURING') {
-            result.style.display = "none";
-            info.innerHTML = `<div style="font-size: 1.3rem; color:#aaa; font-weight:bold; margin-bottom:10px;">計測中...</div>`;
-            btn.innerText = `${t.eVal}${t.mode==='pct'?'%':'個'} で確定`;
-            btn.style.background = "#555"; 
-            btn.style.color = "#fff";
-            btn.style.display = "block";
-            topReset.style.display = "inline-block";
-        } else if (t.phase === 'FINISHED' || t.targetFinishTime) {
-            result.style.display = "block";
-            info.innerHTML = "";
-            topReset.style.display = "inline-block";
-            
-            const now = Date.now();
-            if (t.targetFinishTime && now >= t.targetFinishTime) {
-                btn.style.display = "block";
-                btn.innerText = "クリアして次へ";
-                btn.style.background = "#444";
-                btn.style.color = "#aaa";
-            } else {
-                btn.style.display = "none";
-            }
-        }
-    }
-
-    function uiRenderLoop() {
-        const now = Date.now();
-        
-        // 【最重要・エラー遮断バリア】
-        // 他のタブのバッジやデータ処理で万が一エラーが起きても、絶対に全体時計を殺さずに握りつぶす
-        for (let i = 1; i <= 3; i++) {
-            try {
-                const t = timers[i];
-                if (t.targetFinishTime) {
-                    if (now >= t.targetFinishTime) {
-                        t.currentEstimatedVal = t.totalTarget;
-                        const elBadge = document.getElementById(`badge${i}`);
-                        if (elBadge) elBadge.style.display = 'none'; 
-                        if (!t.notified) {
-                            sendPushNotification(i);
-                            t.notified = true;
-                            saveTabSpecific(i);
-                        }
-                    } else if (t.speedPerMs > 0) {
-                        t.currentEstimatedVal = t.eVal + (t.speedPerMs * (now - t.confirmTime));
-                        if (t.currentEstimatedVal >= t.totalTarget) t.currentEstimatedVal = t.totalTarget;
-                        
-                        const elBadge = document.getElementById(`badge${i}`);
-                        if (elBadge) {
-                            if (t.phase === 'FINISHED') {
-                                elBadge.style.display = 'inline-block'; 
-                            } else {
-                                elBadge.style.display = 'none';
-                            }
-                        }
-                    }
-                } else {
-                    const elBadge = document.getElementById(`badge${i}`);
-                    if (elBadge) elBadge.style.display = 'none';
-                }
-            } catch (e) {
-                // 裏ループのエラーを完全に無視して次の処理へ進む
-                console.error("裏処理エラー検知（バリアが防御しました）:", e);
-            }
-        }
-        
-        // 現在開いているアクティブタブの画面描写（何が何でも100%確実に1秒ごとに強制実行）
+    let cur = 1;
+    let t = {};
+    let lastCalculatedProgress = 0; 
+    
+    function loadStorage() {
+        let saved = localStorage.getItem('ttime');
         try {
-            renderStaticUI(); 
-            const activeTimer = timers[currentTab];
-            if (activeTimer.targetFinishTime) {
-                updateFinishedDisplaySmooth(activeTimer, now);
-            }
-        } catch (e) {
-            console.error("メイン描画エラー:", e);
+            t = JSON.parse(saved) || {};
+        } catch(e) {
+            t = {};
         }
+        [1, 2, 3].forEach(i => {
+            if (!t[i] || typeof t[i] !== 'object') t[i] = {};
+            if (!t[i].p) t[i].p = 'R'; 
+            if (!t[i].m) t[i].m = 'pct'; 
+        });
+    }
+    loadStorage();
+    
+    function switchTab(n) {
+        document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('tab-active', i+1===n));
+        cur = n; 
+        render();
     }
 
-    function updateFinishedDisplaySmooth(t, now) {
-        if (!t.speedPerMs || t.speedPerMs <= 0 || !t.targetFinishTime) return; 
-        
-        const timePerUnitMs = 1 / t.speedPerMs;
+    function changeMode(m) { 
+        t[cur].m = m; 
+        updateModeUI(m);
+        localStorage.setItem('ttime', JSON.stringify(t));
+    }
 
-        document.getElementById('valPerMin').innerText = (t.speedPerMs * 60000).toFixed(1) + (t.mode==='pct'?'%':'個');
-        document.getElementById('valPerUnit').innerText = (timePerUnitMs / 1000).toFixed(1) + "秒";
-        document.getElementById('valFullDuration').innerText = formatMinSec((timePerUnitMs * t.totalTarget) / 1000);
-
-        const calcTime = (p) => {
-            const target = t.totalTarget * p;
-            if (target <= t.eVal) return "到達済";
-            return new Date(t.confirmTime + timePerUnitMs * (target - t.eVal)).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        };
-
-        document.getElementById('valFinish').innerText = new Date(t.targetFinishTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        document.getElementById('m10').innerText = calcTime(0.1);
-        document.getElementById('m50').innerText = calcTime(0.5);
-        document.getElementById('m90').innerText = calcTime(0.9);
+    function updateModeUI(m) {
+        document.getElementById('modePct').classList.toggle('mode-active', m==='pct');
+        document.getElementById('modeNum').classList.toggle('mode-active', m==='num');
+        document.getElementById('numInputArea').style.display = m==='num'?'block':'none';
+    }
+    
+    function render() {
+        const d = t[cur];
+        updateModeUI(d.m);
+        document.getElementById('resultArea').style.display = d.p==='F'?'block':'none';
         
-        const rem = (t.targetFinishTime - now) / 1000;
-        const countdownText = formatMinSec(rem);
-        
-        if (countdownText === "完了！" || now >= t.targetFinishTime || t.currentEstimatedVal >= t.totalTarget) {
-            document.getElementById('valRemainingCountdown').innerText = "完了！";
-            document.getElementById('pauseBtnInline').style.display = "none";
-            document.getElementById('valLiveProgress').innerText = t.totalTarget.toFixed(t.mode==='pct'?2:0);
-            document.getElementById('barFill').style.width = "100%";
-            
-            const btn = document.getElementById('mainBtn');
-            btn.style.display = "block";
-            btn.innerText = "クリアして次へ";
-            btn.style.background = "#444";
-            btn.style.color = "#aaa";
+        const mainBtn = document.getElementById('mainBtn');
+        if (d.p === 'F') {
+            mainBtn.style.display = 'none';
         } else {
-            document.getElementById('valRemainingCountdown').innerText = "あと " + countdownText;
-            document.getElementById('pauseBtnInline').style.display = "block";
-            document.getElementById('valLiveProgress').innerText = t.currentEstimatedVal.toFixed(2);
-            document.getElementById('barFill').style.width = (t.currentEstimatedVal / t.totalTarget * 100) + "%";
-            document.getElementById('mainBtn').style.display = "none";
+            mainBtn.style.display = 'block';
+            mainBtn.innerText = d.p==='R'?'ここから測る':'確定して計算';
         }
-    }
-
-    function handleClick() {
-        const t = timers[currentTab];
-        if (t.phase === 'READY') {
-            t.sVal = parseFloat(document.getElementById('inputStart').value);
-            t.eVal = parseFloat(document.getElementById('inputEnd').value);
-            t.totalTarget = (t.mode === 'pct') ? 100 : parseFloat(document.getElementById('inputTotal').value);
-
-            t.startTime = Date.now();
-            t.phase = 'MEASURING';
-            saveTabSpecific(currentTab);
-            renderStaticUI();
-        } else if (t.phase === 'MEASURING') {
-            t.confirmTime = Date.now();
-            const durationMs = t.confirmTime - t.startTime;
-            const diff = t.eVal - t.sVal;
-            if (diff <= 0) { alert("数値を正しく入力してください"); return; }
-            
-            t.speedPerMs = diff / durationMs;
-            t.targetFinishTime = t.confirmTime + ((t.totalTarget - t.eVal) / t.speedPerMs);
-            t.phase = 'FINISHED';
-            t.notified = false;
-            saveTabSpecific(currentTab);
-            renderStaticUI();
-        } else if (t.phase === 'FINISHED' || t.targetFinishTime) {
-            softReset();
-        }
-    }
-
-    function softReset() {
-        timers[currentTab] = { mode: timers[currentTab].mode, phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
-        document.getElementById('inputStart').value = 3;
-        document.getElementById('inputEnd').value = 4;
-        document.getElementById('inputTotal').value = 100;
-        document.getElementById('resultArea').style.display = "none";
-        saveTabSpecific(currentTab);
-        renderStaticUI();
-    }
-
-    function globalAllReset() {
-        if (confirm("すべてのタブのデータを完全に初期化します。よろしいですか？")) {
-            for (let i = 1; i <= 3; i++) {
-                timers[i] = { mode: timers[i].mode, phase: 'READY', sVal: 3, eVal: 4, totalTarget: 100, startTime: null, confirmTime: null, targetFinishTime: null, speedPerMs: 0, currentEstimatedVal: 0, notified: false };
-                saveTabSpecific(i);
-            }
-            document.getElementById('inputStart').value = 3;
-            document.getElementById('inputEnd').value = 4;
-            document.getElementById('inputTotal').value = 100;
-            document.getElementById('resultArea').style.display = "none";
-            renderStaticUI();
-        }
-    }
-
-    function pauseAndEdit() {
-        const t = timers[currentTab];
-        const roundedVal = Math.floor(t.currentEstimatedVal);
-        t.sVal = roundedVal;
-        t.eVal = roundedVal + 1;
-        t.phase = 'READY';
-        t.targetFinishTime = null; 
-        saveTabSpecific(currentTab);
         
-        document.getElementById('inputStart').value = t.sVal;
-        document.getElementById('inputEnd').value = t.eVal;
-        renderStaticUI();
-        document.getElementById('info-area').innerText = "再設定してください";
-        document.getElementById('inputEnd').focus();
+        if (d.p === 'R') {
+            document.getElementById('sVal').value = 3;
+            document.getElementById('eVal').value = 4;
+            document.getElementById('totalVal').value = 100;
+        } else {
+            document.getElementById('sVal').value = d.s;
+            document.getElementById('eVal').value = d.e;
+            if(d.total && d.m==='num') document.getElementById('totalVal').value = d.total;
+        }
+
+        updateBadges();
     }
 
-    function sendPushNotification(tabNum) {
-        if ("Notification" in window && Notification.permission === "granted") {
-            const titles = { 1: "壱", 2: "弐", 3: "参" };
-            new Notification(`T-Time: [${titles[tabNum]}] 完了`, {
-                body: "予定時刻に到達しました。",
-                icon: "icon.png?v=2"
-            });
+    function updateBadges() {
+        const now = Date.now();
+        [1,2,3].forEach(i => {
+            const badge = document.getElementById('b'+i);
+            const d = t[i];
+            
+            if (d.p === 'M') { 
+                badge.style.display = 'block';
+                badge.style.backgroundColor = 'var(--accent)'; 
+            } else if (d.p === 'F' && d.speed) {
+                let prac = d.confirm + ((d.total - d.e) / d.speed) * 1.4;
+                if (prac - now > 0) {
+                    badge.style.display = 'block';
+                    badge.style.backgroundColor = 'var(--accent)'; 
+                } else {
+                    badge.style.display = 'block';
+                    badge.style.backgroundColor = 'var(--success)'; 
+                }
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+    }
+
+    function handle() {
+        let d = t[cur];
+        if(d.p==='R') {
+            d.s = +document.getElementById('sVal').value; d.e = +document.getElementById('eVal').value;
+            d.total = d.m==='pct'?100:+document.getElementById('totalVal').value;
+            d.start = Date.now(); d.p = 'M';
+        } else if(d.p==='M') {
+            d.confirm = Date.now(); 
+            let valDiff = d.e - d.s;
+            let timeDiff = d.confirm - d.start;
+            d.speed = timeDiff > 0 ? (valDiff / timeDiff) : 0.0001;
+            d.p = 'F';
+        } else if(d.p==='F') {
+            d.p = 'R';
+        }
+        localStorage.setItem('ttime', JSON.stringify(t)); render();
+    }
+
+    function pauseAndReset() {
+        let d = t[cur];
+        if (d.p === 'F') {
+            let currentVal = 0;
+            if (d.m === 'pct') {
+                currentVal = Math.round(lastCalculatedProgress);
+            } else {
+                currentVal = Math.round((lastCalculatedProgress / 100) * d.total);
+            }
+            if (currentVal > d.total) currentVal = d.total;
+
+            d.p = 'R';
+            localStorage.setItem('ttime', JSON.stringify(t));
+            render();
+            
+            document.getElementById('sVal').value = currentVal;
+            document.getElementById('eVal').value = currentVal + 1;
         }
     }
 
-    function formatMinSec(totalSeconds) {
-        if (isNaN(totalSeconds) || totalSeconds < 1.0) return "完了！";
-        const m = Math.floor(totalSeconds / 60);
-        const s = Math.floor(totalSeconds % 60);
-        return m + "分" + s + "秒";
+    function clearAll() {
+        if(confirm("警告：すべてのタブの計測データを完全に消去し、最初の状態に戻します。よろしいですか？")) {
+            localStorage.removeItem('ttime');
+            loadStorage();
+            cur = 1;
+            switchTab(1);
+        }
     }
+
+    // 日付と時間を「MM/DD HH:MM」の形式にする共通関数
+    function formatDateTime(ts) {
+        if (isNaN(ts)) return "--/-- --:--";
+        let date = new Date(ts);
+        let m = String(date.getMonth() + 1).padStart(2, '0');
+        let d = String(date.getDate()).padStart(2, '0');
+        let hr = String(date.getHours()).padStart(2, '0');
+        let min = String(date.getMinutes()).padStart(2, '0');
+        return `${m}/${d} ${hr}:${min}`;
+    }
+
+    // 【新機能】ミリ秒を最適な単位（日・時・分・秒）のテキストに変える関数
+    function formatCountdown(diffMs) {
+        if (diffMs <= 0) return "完了！";
+        
+        let totalSec = Math.floor(diffMs / 1000);
+        let sec = totalSec % 60;
+        let totalMin = Math.floor(totalSec / 60);
+        let min = totalMin % 60;
+        let totalHr = Math.floor(totalMin / 60);
+        let hr = totalHr % 24;
+        let day = Math.floor(totalHr / 24);
+
+        if (day > 0) {
+            return `あと ${day}日${hr}時間${min}分${sec}秒`;
+        } else if (hr > 0) {
+            return `あと ${hr}時間${min}分${sec}秒`;
+        } else {
+            return `あと ${min}分${sec}秒`;
+        }
+    }
+
+    render();
+
+    setInterval(() => {
+        updateBadges(); 
+        
+        let d = t[cur];
+        if(d && d.p==='F' && d.speed) {
+            let now = Date.now(), speed = d.speed, b = 1.4;
+            let theory = d.confirm + (d.total - d.e) / speed;
+            let prac = d.confirm + ((d.total - d.e) / speed) * b;
+            
+            let totalDuration = prac - d.confirm;
+            let progress = 0;
+            if (totalDuration > 0) {
+                progress = Math.min(100, ((now - d.confirm) / (totalDuration/100)) + ((d.e/d.total)*100));
+            } else {
+                progress = 100;
+            }
+            if(isNaN(progress) || progress < 0) progress = 0;
+            
+            lastCalculatedProgress = progress;
+
+            if(!isNaN(theory) && !isNaN(prac)) {
+                // 【修正】予測時刻に日付「月/日」を付与
+                document.getElementById('theoryTime').innerText = formatDateTime(theory);
+                document.getElementById('practiceTime').innerText = formatDateTime(prac);
+                
+                document.getElementById('bar').style.width = progress + "%";
+                document.getElementById('progressText').innerText = "進捗: " + progress.toFixed(1) + "%";
+                
+                let diff = prac - now;
+                const mainBtn = document.getElementById('mainBtn');
+                
+                if (diff > 0) {
+                    // 【修正】残り時間を「日・時・分・秒」へ自動変換
+                    document.getElementById('countdown').innerText = formatCountdown(diff);
+                    mainBtn.style.display = 'none';
+                } else {
+                    document.getElementById('countdown').innerText = "完了！";
+                    mainBtn.style.display = 'block';
+                    mainBtn.innerText = 'クリアして次へ';
+                }
+                
+                const calc = p => {
+                    let timeVal = d.confirm + (d.total*p - d.e)/speed;
+                    // 下部の表は時間のみの表記を維持（日付をいれると狭いため、必要であれば適宜切り替わります）
+                    return isNaN(timeVal) ? "--:--" : new Date(timeVal).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+                };
+                document.getElementById('m10').innerText = calc(0.1);
+                document.getElementById('m50').innerText = calc(0.5);
+                document.getElementById('m90').innerText = calc(0.9);
+                document.getElementById('vPerMin').innerText = (speed*60000).toFixed(1);
+                document.getElementById('vPerUnit').innerText = (1/speed/1000).toFixed(1)+"秒";
+                document.getElementById('vFull').innerText = Math.floor((theory-d.start)/60000)+"分";
+            }
+        }
+    }, 1000);
 </script>
 </body>
 </html>
