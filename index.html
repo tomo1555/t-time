@@ -24,13 +24,40 @@
         .mode-btn { flex: 1; padding: 6px; border-radius: 6px; border: none; background: transparent; color: #777; cursor: pointer; font-family: var(--font-gyosho); font-size: 1.15rem; font-weight: bold; transition: all 0.2s; }
         .mode-active { background: #333; color: var(--primary); border: 1px solid rgba(201, 160, 99, 0.3); }
         
-        .input-row { display: flex; gap: 8px; margin-bottom: 8px; }
-        .input-group { flex: 1; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 12px; text-align: left; }
+        .input-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: stretch; }
+        .input-group { flex: 1; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 12px; text-align: left; display: flex; flex-direction: column; justify-content: space-between; }
         label { display: block; font-size: 0.75rem; color: var(--primary); }
         input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #444; color: white; font-size: 1.3rem; outline: none; font-family: var(--font-gyosho); }
         
-        .main-btn { background: var(--primary); color: #1a1a1a; border: none; width: 100%; padding: 14px; border-radius: 30px; font-size: 1.3rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); margin-top: 5px; }
-        
+        .action-btn { 
+            width: 76px; 
+            flex: 0 0 auto; 
+            background: var(--primary); 
+            color: #1a1a1a; 
+            border: none; 
+            padding: 4px; 
+            border-radius: 12px; 
+            font-size: 0.95rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            font-family: var(--font-gyosho); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            line-height: 1.2; 
+            transition: all 0.2s;
+        }
+
+        .action-btn.is-measuring {
+            background: #e0a96d;
+            color: #1a1a1a;
+            font-size: 1.1rem;
+            box-shadow: 0 0 10px rgba(224, 169, 109, 0.4);
+        }
+
+        .measuring-info { margin-top: 5px; font-size: 1.1rem; color: var(--text); background: rgba(230, 57, 70, 0.12); padding: 12px; border-radius: 15px; border: 1px solid rgba(230, 57, 70, 0.4); display: flex; justify-content: space-around; align-items: center; }
+        .measuring-info b { color: var(--accent); font-size: 1.2rem; }
+
         .clear-btn { background: var(--accent); color: white; border: none; width: 100%; padding: 8px; border-radius: 20px; font-size: 1.4rem; font-weight: bold; cursor: pointer; font-family: var(--font-gyosho); margin-top: 5px; }
 
         .result { margin-top: 10px; }
@@ -38,9 +65,6 @@
         
         .theory-header { position: relative; display: flex; justify-content: center; align-items: center; min-height: 28px; margin-bottom: 2px; width: 100%; }
         .theory-title-wrapper { font-size: 0.8rem; color: var(--primary); text-align: center; }
-        
-        .pause-reset-btn { position: absolute; right: 0; background: rgba(201, 160, 99, 0.15); color: var(--primary); border: 1px solid rgba(201, 160, 99, 0.4); padding: 3px 8px; border-radius: 10px; font-size: 0.75rem; cursor: pointer; font-family: var(--font-gyosho); transition: all 0.2s; white-space: nowrap; }
-        .pause-reset-btn:active { background: var(--primary); color: #1a1a1a; }
 
         .time-label { font-size: 0.8rem; color: var(--primary); margin-top: 4px; margin-bottom: 2px; }
         .time-label.practice-color { color: var(--success); }
@@ -85,19 +109,24 @@
     <div class="input-row">
         <div class="input-group"><label>現在の値</label><input type="number" id="sVal" value="3"></div>
         <div class="input-group"><label>次に押す値</label><input type="number" id="eVal" value="4"></div>
+        <button id="actionBtn" class="action-btn" onclick="handle()">ここから<br>測る</button>
     </div>
     <div id="numInputArea" class="input-group" style="display:none; margin-bottom:8px;">
         <label>合計目標値</label><input type="number" id="totalVal" value="100">
     </div>
+    
+    <div id="measuringInfo" class="measuring-info" style="display:none;">
+        <div>開始 <span id="startTimeText">--:--:--</span></div>
+        <div>経過 <b id="elapsedTimeText">0分00秒</b></div>
+    </div>
 
-    <button id="mainBtn" class="main-btn" onclick="handle()">ここから測る</button>
+    <!-- クリアボタン（確定後に常に表示） -->
     <button id="clearBtn" class="clear-btn" style="display:none;" onclick="resetCurrentTab()">クリア</button>
 
     <div id="resultArea" class="result" style="display:none;">
         <div class="finish-box">
             <div class="theory-header">
                 <div class="theory-title-wrapper">最短完了予測</div>
-                <button id="pauseResetBtn" class="pause-reset-btn" onclick="pauseAndReset()">一時停止再設定</button>
             </div>
             <div id="theoryTime" class="time-val">--/-- --:--</div>
             
@@ -128,7 +157,7 @@
         </div>
         <div class="analysis-area">
             <div>1分進捗<br><b id="vPerMin" style="color:var(--primary);">--</b></div>
-            <div>1単位<br><b id="vPerUnit" style="color:var(--primary);">--</b></div>
+            <div>1単位あたり<br><b id="vPerUnit" style="color:var(--primary);">--</b></div>
             <div>全体<br><b id="vFull" style="color:var(--primary);">--</b></div>
         </div>
     </div>
@@ -178,17 +207,23 @@
     function render() {
         const d = t[cur];
         updateModeUI(d.m);
-        document.getElementById('resultArea').style.display = d.p==='F'?'block':'none';
         
-        const mainBtn = document.getElementById('mainBtn');
-        const clearBtn = document.getElementById('clearBtn');
+        // 状態が確定（'F'）であれば、結果エリアとクリアボタンを常に表示
+        const isFinished = (d.p === 'F');
+        document.getElementById('resultArea').style.display = isFinished ? 'block' : 'none';
+        document.getElementById('clearBtn').style.display = isFinished ? 'block' : 'none';
         
-        if (d.p === 'F') {
-            mainBtn.style.display = 'none';
+        const actionBtn = document.getElementById('actionBtn');
+        const measuringInfo = document.getElementById('measuringInfo');
+        
+        if (d.p === 'M') {
+            actionBtn.innerHTML = '確定';
+            actionBtn.classList.add('is-measuring');
+            measuringInfo.style.display = 'flex';
         } else {
-            mainBtn.style.display = 'block';
-            clearBtn.style.display = 'none';
-            mainBtn.innerText = d.p==='R'?'ここから測る':'確定して計算';
+            actionBtn.innerHTML = 'ここから<br>測る';
+            actionBtn.classList.remove('is-measuring');
+            measuringInfo.style.display = 'none';
         }
         
         if (d.p === 'R') {
@@ -230,35 +265,50 @@
 
     function handle() {
         let d = t[cur];
-        if(d.p==='R') {
-            d.s = +document.getElementById('sVal').value; d.e = +document.getElementById('eVal').value;
-            d.total = d.m==='pct'?100:+document.getElementById('totalVal').value;
-            d.start = Date.now(); d.p = 'M';
-        } else if(d.p==='M') {
-            d.confirm = Date.now(); 
-            let valDiff = d.e - d.s;
-            let timeDiff = d.confirm - d.start;
-            d.speed = timeDiff > 0 ? (valDiff / timeDiff) : 0.0001;
+        
+        let sInput = +document.getElementById('sVal').value;
+        let eInput = +document.getElementById('eVal').value;
+        let totalInput = d.m === 'pct' ? 100 : +document.getElementById('totalVal').value;
+
+        if (isNaN(sInput) || isNaN(eInput) || isNaN(totalInput) || totalInput <= 0) {
+            alert("入力値が不正です。正しい数値を入力してください。");
+            return;
+        }
+        if (eInput <= sInput) {
+            alert("「次に押す値」は「現在の値」より大きい値を入力してください。");
+            return;
+        }
+        if (eInput > totalInput) {
+            alert("計測値が目標（合計/100%）を超えています。");
+            return;
+        }
+
+        if(d.p === 'R' || d.p === 'F') {
+            d.s = sInput; 
+            d.e = eInput;
+            d.total = totalInput;
+            d.start = Date.now(); 
+            d.p = 'M';
+        } else if(d.p === 'M') {
+            let confirmTime = Date.now(); 
+            let valDiff = eInput - d.s;
+            let timeDiff = confirmTime - d.start;
+
+            if (timeDiff <= 0) {
+                alert("測定時間が短すぎます。もう一度最初から測定してください。");
+                d.p = 'R';
+                render();
+                return;
+            }
+
+            d.e = eInput;
+            d.total = totalInput;
+            d.confirm = confirmTime;
+            d.speed = valDiff / timeDiff;
             d.p = 'F';
         }
-        localStorage.setItem('ttime', JSON.stringify(t)); render();
-    }
-
-    function pauseAndReset() {
-        let d = t[cur];
-        if (d.p === 'F') {
-            const nextS = +document.getElementById('sVal').value;
-            const nextE = +document.getElementById('eVal').value;
-            const nextTotal = d.m==='pct'?100:+document.getElementById('totalVal').value;
-
-            d.p = 'R';
-            localStorage.setItem('ttime', JSON.stringify(t));
-            render();
-            
-            document.getElementById('sVal').value = nextS;
-            document.getElementById('eVal').value = nextE;
-            document.getElementById('totalVal').value = nextTotal;
-        }
+        localStorage.setItem('ttime', JSON.stringify(t)); 
+        render();
     }
 
     function resetCurrentTab() {
@@ -277,8 +327,16 @@
         }
     }
 
+    function formatTimeHMS(ts) {
+        let date = new Date(ts);
+        let hr = String(date.getHours()).padStart(2, '0');
+        let min = String(date.getMinutes()).padStart(2, '0');
+        let sec = String(date.getSeconds()).padStart(2, '0');
+        return `${hr}:${min}:${sec}`;
+    }
+
     function formatDateTime(ts) {
-        if (isNaN(ts)) return "--/-- --:--";
+        if (isNaN(ts) || !isFinite(ts)) return "--/-- --:--";
         let date = new Date(ts);
         let m = String(date.getMonth() + 1).padStart(2, '0');
         let d = String(date.getDate()).padStart(2, '0');
@@ -310,22 +368,33 @@
 
     setInterval(() => {
         updateBadges(); 
-        
+        let now = Date.now();
         let d = t[cur];
-        if(d && d.p==='F' && d.speed) {
-            let now = Date.now(), speed = d.speed, b = 1.4;
+
+        if (d && d.p === 'M') {
+            document.getElementById('startTimeText').innerText = formatTimeHMS(d.start);
+            let elapsedSec = Math.floor((now - d.start) / 1000);
+            let min = Math.floor(elapsedSec / 60);
+            let sec = String(elapsedSec % 60).padStart(2, '0');
+            document.getElementById('elapsedTimeText').innerText = `${min}分${sec}秒`;
+        }
+
+        if(d && d.p==='F' && d.speed && d.speed > 0) {
+            let speed = d.speed, b = 1.4;
             let theory = d.confirm + (d.total - d.e) / speed;
             let prac = d.confirm + ((d.total - d.e) / speed) * b;
-            
-            let totalDurationShortest = theory - d.confirm;
-            let progressShortest = totalDurationShortest > 0 ? ((now - d.confirm) / (totalDurationShortest/100)) + ((d.e/d.total)*100) : 100;
+
+            let totalTimeShortest = theory - d.start;
+            let elapsedTimeShortest = now - d.start;
+            let progressShortest = (elapsedTimeShortest / totalTimeShortest) * 100;
             progressShortest = Math.max(0, Math.min(100, isNaN(progressShortest) ? 0 : progressShortest));
 
-            let totalDurationPractice = prac - d.confirm;
-            let progressPractice = totalDurationPractice > 0 ? ((now - d.confirm) / (totalDurationPractice/100)) + ((d.e/d.total)*100) : 100;
+            let totalTimePractice = prac - d.start;
+            let elapsedTimePractice = now - d.start;
+            let progressPractice = (elapsedTimePractice / totalTimePractice) * 100;
             progressPractice = Math.max(0, Math.min(100, isNaN(progressPractice) ? 0 : progressPractice));
 
-            if(!isNaN(theory) && !isNaN(prac)) {
+            if(!isNaN(theory) && !isNaN(prac) && isFinite(theory) && isFinite(prac)) {
                 document.getElementById('theoryTime').innerText = formatDateTime(theory);
                 document.getElementById('practiceTime').innerText = formatDateTime(prac);
                 
@@ -341,21 +410,16 @@
                 document.getElementById('countdownShortest').innerText = "最短: " + formatCountdown(diffShortest);
                 document.getElementById('countdownPractice').innerText = "目処: " + formatCountdown(diffPractice);
                 
-                const clearBtn = document.getElementById('clearBtn');
-                
-                if (diffPractice > 0) {
-                    clearBtn.style.display = 'none';
-                } else {
-                    clearBtn.style.display = 'block';
-                }
-                
                 const calc = p => {
                     let timeVal = d.confirm + (d.total*p - d.e)/speed;
-                    return isNaN(timeVal) ? "--:--" : new Date(timeVal).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+                    if (isNaN(timeVal) || !isFinite(timeVal)) return "--:--";
+                    let timeStr = new Date(timeVal).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+                    return timeVal < now ? `${timeStr}(通過)` : timeStr;
                 };
                 document.getElementById('m10').innerText = calc(0.1);
                 document.getElementById('m50').innerText = calc(0.5);
                 document.getElementById('m90').innerText = calc(0.9);
+                
                 document.getElementById('vPerMin').innerText = (speed*60000).toFixed(1);
                 document.getElementById('vPerUnit').innerText = (1/speed/1000).toFixed(1)+"秒";
                 document.getElementById('vFull').innerText = Math.floor((theory-d.start)/60000)+"分";
