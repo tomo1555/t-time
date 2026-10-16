@@ -120,7 +120,6 @@
         <div>経過 <b id="elapsedTimeText">0分00秒</b></div>
     </div>
 
-    <!-- クリアボタン（確定後に常に表示） -->
     <button id="clearBtn" class="clear-btn" style="display:none;" onclick="resetCurrentTab()">クリア</button>
 
     <div id="resultArea" class="result" style="display:none;">
@@ -168,6 +167,9 @@
 </div>
 
 <script>
+    // ★ 推定完了目処のバッファ倍率（一括変更したい時はここ数値を変更します）
+    const BUFFER_FACTOR = 1.5;
+
     let cur = 1;
     let t = {};
     
@@ -208,7 +210,6 @@
         const d = t[cur];
         updateModeUI(d.m);
         
-        // 状態が確定（'F'）であれば、結果エリアとクリアボタンを常に表示
         const isFinished = (d.p === 'F');
         document.getElementById('resultArea').style.display = isFinished ? 'block' : 'none';
         document.getElementById('clearBtn').style.display = isFinished ? 'block' : 'none';
@@ -249,7 +250,7 @@
                 badge.style.display = 'block';
                 badge.style.backgroundColor = 'var(--accent)'; 
             } else if (d.p === 'F' && d.speed) {
-                let prac = d.confirm + ((d.total - d.e) / d.speed) * 1.4;
+                let prac = d.confirm + ((d.total - d.e) / d.speed) * BUFFER_FACTOR;
                 if (prac - now > 0) {
                     badge.style.display = 'block';
                     badge.style.backgroundColor = 'var(--accent)'; 
@@ -291,7 +292,11 @@
             d.p = 'M';
         } else if(d.p === 'M') {
             let confirmTime = Date.now(); 
-            let valDiff = eInput - d.s;
+            d.s = sInput; 
+            d.e = eInput;
+            d.total = totalInput;
+
+            let valDiff = d.e - d.s;
             let timeDiff = confirmTime - d.start;
 
             if (timeDiff <= 0) {
@@ -301,8 +306,6 @@
                 return;
             }
 
-            d.e = eInput;
-            d.total = totalInput;
             d.confirm = confirmTime;
             d.speed = valDiff / timeDiff;
             d.p = 'F';
@@ -380,18 +383,19 @@
         }
 
         if(d && d.p==='F' && d.speed && d.speed > 0) {
-            let speed = d.speed, b = 1.4;
+            let speed = d.speed;
             let theory = d.confirm + (d.total - d.e) / speed;
-            let prac = d.confirm + ((d.total - d.e) / speed) * b;
+            let prac = d.confirm + ((d.total - d.e) / speed) * BUFFER_FACTOR;
 
+            let startPct = (d.s / d.total) * 100;
             let totalTimeShortest = theory - d.start;
             let elapsedTimeShortest = now - d.start;
-            let progressShortest = (elapsedTimeShortest / totalTimeShortest) * 100;
+            let progressShortest = startPct + ((elapsedTimeShortest / totalTimeShortest) * (100 - startPct));
             progressShortest = Math.max(0, Math.min(100, isNaN(progressShortest) ? 0 : progressShortest));
 
             let totalTimePractice = prac - d.start;
             let elapsedTimePractice = now - d.start;
-            let progressPractice = (elapsedTimePractice / totalTimePractice) * 100;
+            let progressPractice = startPct + ((elapsedTimePractice / totalTimePractice) * (100 - startPct));
             progressPractice = Math.max(0, Math.min(100, isNaN(progressPractice) ? 0 : progressPractice));
 
             if(!isNaN(theory) && !isNaN(prac) && isFinite(theory) && isFinite(prac)) {
